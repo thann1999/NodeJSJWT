@@ -13,7 +13,7 @@ const accountSchema = new mongoose.Schema({
   dateOfBirth: { type: Date },
   createdDate: { type: Date, default: Date.now, required: true },
   role: { type: String, required: true },
-  activated: {type: Boolean, required: true}
+  isVerify: { type: Boolean, default: false, required: true },
 });
 
 module.exports = mongoose.model("Account", accountSchema);
