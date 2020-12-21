@@ -43,17 +43,17 @@ function createMailCode(email, accountId) {
 }
 
 function createMailLink(account) {
-  const code = jwt.sign({ id: account._id }, process.env.SECRET_TOKEN, {
+  const resetCode = jwt.sign({ accountId: account._id }, process.env.SECRET_TOKEN, {
     expiresIn: "2h",
   });
 
   const mail = {
     from: process.env.TRANSPORT_EMAIL,
     to: account.email,
-    subject: "[Data World] Lấy lại mật khẩu",
+    subject: "[Data World] Đặt lại mật khẩu",
     html: `
-        <h2>Link đổi lại mật khẩu của bạn là: </h2>
-        <p><a>${process.env.CLIENT_URL}/reset-password/${code}</a></p>
+        <h2>Click vào link dưới đây để đặt lại mật khẩu: </h2>
+        <a href="${process.env.CLIENT_URL}/auth/reset-password/${resetCode}">Click here</a>
         <p>Link sẽ hết hạn trong 2 giờ. Vui lòng không reply email này.</p> `,
   };
 
