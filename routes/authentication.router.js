@@ -1,7 +1,7 @@
 var express = require("express");
 const authenticationController = require("../controllers/authentication.controller");
 const { validate } = require("../common/validation.account");
-const { auth } = require("../common/verify.token");
+const { auth, resetPasswordToken } = require("../common/verify.token");
 var router = express.Router();
 
 /* POST username, password and login */
@@ -21,9 +21,9 @@ router.post(
 );
 
 /* Forgot password */
-router.post("/forgot-password", authenticationController.forgotPassword)
+router.post("/forgot-password", authenticationController.forgotPassword);
 
 /* Reset password */
-router.post("/reset-password", authenticationController.forgotPassword)
+router.post("/reset-password", resetPasswordToken, authenticationController.changePassword);
 
 module.exports = router;

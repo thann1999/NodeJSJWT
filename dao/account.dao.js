@@ -23,7 +23,7 @@ class AccountDao extends BaseDao {
   /*Find account by Id */
   async findAccountById(id) {
     const query = {
-      _id: id
+      _id: id,
     };
     return await super.findOne(Account, query);
   }
@@ -40,22 +40,23 @@ class AccountDao extends BaseDao {
   }
 
   /*Update activate account */
-  async updateVerifyAccount(userId, isVerify) {
-    const query = { _id: userId };
+  async updateVerifyAccount(accountId, isVerify) {
+    const query = { _id: accountId };
     const update = { isVerify: isVerify };
     return await super.updateOne(Account, query, update);
-  }
-
-  /*Replace account */
-  async findAndReplaceAccount(email, account = new Account()) {
-    const query = { email: email };
-    return await super.replaceOne(Account, query, account);
   }
 
   /* Delete account */
   async deleteAccount(email) {
     const query = { email: email };
     return await super.deleteOne(Account, query);
+  }
+
+  /*Update activate account */
+  async updatePassword(accountId, newPassword) {
+    const query = { _id: accountId };
+    const update = { password: newPassword };
+    return await super.updateOne(Account, query, update);
   }
 }
 
