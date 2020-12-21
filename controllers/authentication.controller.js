@@ -74,7 +74,6 @@ async function verifyAccount(req, res, next) {
     return res.status(401).send("Từ chối truy cập");
   }
   const result = await RegisterCodeDao.findRegisterCodeByUserId(accountId);
-  console.log(result)
   if (result.length === 0 || result[0].code !== token) {
     return res.status(400).json({ message: "Mã xác nhận sai" });
   } else if (result[0].isAlreadyUse) {
@@ -137,10 +136,64 @@ async function register(req, res, next) {
   }
 }
 
+/* Change password */
+function changePassword(req, res, next) {
+  try {
+  const decoded = jwt_decode(req.body.resetCode);
+  const newPassword = req.body.newPassword
+  await AccountDao.updatePassword(decoded.accountId, newPassword)
+    res.status(200).json({message: "Đổi mật khẩu thành công"})
+  } catch (error) {
+    next(error)
+  }
+
+}
+
+/* Register account */
+async function register(req, res, next) {
+  //Validate account before save into database
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json(errors.array());
+  }
+  try {
+    const user = await AccountDao.findAccountByUsernameOrEmail(
+      req.body.email,
+      req.body.username
+    );
+
+    const newUser = new Account({
+      email: req.body.email,
+      username: req.body.username,
+      password: hashPassword(req.body.password),
+      name: req.body.firstName + " " + req.body.lastName,
+      role: process.env.ROLE_USER,
+    });
+
+    //If account exist
+    if (user) {
+      if (!user.isVerify) {
+        await AccountDao.deleteAccount(user.email);
+      } else {
+        if (user.email === newUser.email)
+          return res.status(400).json({ message: "Email đã tồn tại" });
+        else if (user.username === newUser.username)
+          return res.status(400).json({ message: "Tên tài khoản đã tồn tại" });
+      }
+    }
+    const result = await AccountDao.createAccount(newUser);
+    sendEmail(createMailCode(result.email, result._id));
+    res.status(200).json({ message: result._id });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   login: login,
   register: register,
   checkLogin: checkLogin,
   verifyAccount: verifyAccount,
   forgotPassword: forgotPassword,
+  changePassword: changePassword
 };
