@@ -137,16 +137,18 @@ async function register(req, res, next) {
 }
 
 /* Change password */
-function changePassword(req, res, next) {
-  try {
-  const decoded = jwt_decode(req.body.resetCode);
-  const newPassword = req.body.newPassword
-  await AccountDao.updatePassword(decoded.accountId, newPassword)
-    res.status(200).json({message: "Đổi mật khẩu thành công"})
-  } catch (error) {
-    next(error)
+async function changePassword(req, res, next) {
+  if(!req.body.newPassword) {
+    return res.status(200).json({message: "Token đúng"})
   }
-
+  try {
+    const decoded = jwt_decode(req.header("auth-token"));
+    const newPassword = req.body.newPassword;
+    await AccountDao.updatePassword(decoded.accountId, newPassword);
+    res.status(200).json({ message: "Đổi mật khẩu thành công" });
+  } catch (error) {
+    next(error);
+  }
 }
 
 /* Register account */
@@ -195,5 +197,5 @@ module.exports = {
   checkLogin: checkLogin,
   verifyAccount: verifyAccount,
   forgotPassword: forgotPassword,
-  changePassword: changePassword
+  changePassword: changePassword,
 };
