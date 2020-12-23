@@ -138,8 +138,12 @@ async function register(req, res, next) {
 
 /* Change password */
 async function changePassword(req, res, next) {
-  if(!req.body.newPassword) {
-    return res.status(200).json({message: "Token đúng"})
+  if (!req.body.newPassword) {
+    return res.status(200).json({ message: "Token chính xác" });
+  }
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({message: errors.array()});
   }
   try {
     const decoded = jwt_decode(req.header("auth-token"));

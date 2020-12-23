@@ -24,6 +24,11 @@ router.post(
 router.post("/forgot-password", authenticationController.forgotPassword);
 
 /* Reset password */
-router.post("/reset-password", resetPasswordToken, authenticationController.changePassword);
+router.post(
+  "/reset-password",
+  resetPasswordToken,
+  validate.validatePassword(),
+  authenticationController.changePassword
+);
 
 module.exports = router;
