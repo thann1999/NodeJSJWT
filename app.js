@@ -6,6 +6,7 @@ var logger = require("morgan");
 var authenticationRouter = require("./routes/authentication.router");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const passport = require("passport");
 
 require("dotenv/config");
 var app = express();
@@ -32,7 +33,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
-
+app.use(passport.initialize())
 //Router
 app.use("/api/auth", authenticationRouter);
 
