@@ -23,6 +23,7 @@ function resetPasswordToken(req, res, next) {
   const token = req.header("resetPassword-token");
   // Check if token is undefined
   if (!token) {
+    
     return res.status(401).send({ message: "Từ chối truy cập" });
   }
   try {

@@ -5,6 +5,8 @@ const { validationResult, check } = require("express-validator");
 const { sendEmail, createMailCode, createMailLink } = require("./send.email");
 const AccountDao = require("../dao/account.dao");
 const RegisterCodeDao = require("../dao/register.code.dao");
+const jwt_decode = require("jwt-decode");
+const { OAuth2Client } = require("google-auth-library");
 
 /* Hashing password by SHA256 */
 function hashPassword(password) {
@@ -25,7 +27,7 @@ async function login(req, res, next) {
       req.body.username,
       hashPassword(req.body.password)
     );
-    if (user) {
+    if (user && user.isVerify) {
       jwt.sign(
         { id: user._id, name: user.name },
         process.env.SECRET_TOKEN,
@@ -35,10 +37,6 @@ async function login(req, res, next) {
             err.status = 400;
             throw err;
           }
-          if (!user.isVerify)
-            return res
-              .status(401)
-              .json({ message: "Sai tên tài khoản hoặc mật khẩu" });
           res
             .status(200)
             .header("auth-token", token)
@@ -143,7 +141,7 @@ async function changePassword(req, res, next) {
   }
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(422).json({message: errors.array()});
+    return res.status(422).json({ message: errors.array() });
   }
   try {
     const decoded = jwt_decode(req.header("auth-token"));
@@ -155,6 +153,19 @@ async function changePassword(req, res, next) {
   }
 }
 
+/* Login with google */
+async function loginGoogle(req, res, next) {
+  const oAuth2Client = new OAuth2Client();
+  const { accessToken, profile } = req.body;
+  console.log(accessToken, profile);
+  try {
+    const tokenInfo = await oAuth2Client.getTokenInfo(accessToken);
+
+    res.status(200).send({ message: tokenInfo });
+  } catch (error) {
+    res.status(400).json({ message: "Access token không đúng" });
+  }
+}
 /* Register account */
 async function register(req, res, next) {
   //Validate account before save into database
@@ -202,4 +213,5 @@ module.exports = {
   verifyAccount: verifyAccount,
   forgotPassword: forgotPassword,
   changePassword: changePassword,
+  loginGoogle: loginGoogle,
 };

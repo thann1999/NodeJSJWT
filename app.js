@@ -6,7 +6,6 @@ var logger = require("morgan");
 var authenticationRouter = require("./routes/authentication.router");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const passport = require("passport");
 
 require("dotenv/config");
 var app = express();
@@ -15,7 +14,7 @@ var app = express();
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
-    optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+    optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
   })
 );
 //connect mongodb
@@ -33,7 +32,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
-app.use(passport.initialize())
 //Router
 app.use("/api/auth", authenticationRouter);
 
