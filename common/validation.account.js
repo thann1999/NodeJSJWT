@@ -7,8 +7,8 @@ const validateRegisterAccount = () => {
     check("username", "Tên tài khoản không được trống").not().isEmpty(),
     check(
       "username",
-      "Tên tài khoản dài 6-16 ký tự, không sử dụng các ký tự đặc biệt"
-    ).matches(/^(?=.{6,16}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$/),
+      "Tên tài khoản dài hơn 6 ký tự, không sử dụng các ký tự đặc biệt, có thể sử dụng [. _ @]"
+    ).matches(/^(?=.{6,}$)[a-zA-Z0-9._@]+(?<![_.@])$/),
     check("firstName", "Họ không được trống").not().isEmpty(),
     check("lastName", "Tên không được trống").not().isEmpty(),
     validatePassword(),
@@ -20,7 +20,7 @@ const validatePassword = () => {
     check("password", "Mật khẩu không được trống").not().isEmpty(),
     check(
       "password",
-      "Mật khẩu phải có ít nhất 6 ký tự, bao gồm ít nhất 1 ký tự là số và ký tự đặc biệt [@, $, !, %, *, #, ?, &, .]"
+      "Mật khẩu phải có ít nhất 6 ký tự, bao gồm ít nhất 1 ký tự là số và ký tự đặc biệt [@ $ ! % * # ? & .]"
     ).matches(
       /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&.])[A-Za-z\d@$!%*#?&.]{6,}$/
     ),
@@ -31,8 +31,8 @@ const validateLogin = () => {
     check("username", "Tên tài khoản không được trống").not().isEmpty(),
     check(
       "username",
-      "Tên tài khoản dài 6-16 ký tự, không sử dụng các ký tự đặc biệt"
-    ).matches(/^(?=.{6,16}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$/),
+      "Tên tài khoản dài hơn 6 ký tự, không sử dụng các ký tự đặc biệt, có thể sử dụng [. _ @]"
+    ).matches((/^(?=.{6,}$)[a-zA-Z0-9._@]+(?<![_.@])$/)),
     validatePassword(),
   ];
 };

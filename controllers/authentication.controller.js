@@ -7,6 +7,7 @@ const AccountDao = require("../dao/account.dao");
 const RegisterCodeDao = require("../dao/register.code.dao");
 const jwt_decode = require("jwt-decode");
 const { OAuth2Client } = require("google-auth-library");
+const { createAccount } = require("../dao/account.dao");
 
 /* Hashing password by SHA256 */
 function hashPassword(password) {
@@ -28,21 +29,11 @@ async function login(req, res, next) {
       hashPassword(req.body.password)
     );
     if (user && user.isVerify) {
-      jwt.sign(
-        { id: user._id, name: user.name },
-        process.env.SECRET_TOKEN,
-        { expiresIn: "1h" },
-        (err, token) => {
-          if (err) {
-            err.status = 400;
-            throw err;
-          }
-          res
-            .status(200)
-            .header("auth-token", token)
-            .json({ token: token, message: user.name });
-        }
-      );
+      const token = createJWTToken(user._id, user.name);
+      res
+        .status(200)
+        .header("auth-token", token)
+        .json({ token: token, message: user.name });
     } else {
       res.status(401).json({ message: "Sai tên tài khoản hoặc mật khẩu" });
     }
@@ -66,13 +57,12 @@ async function forgotPassword(req, res, next) {
 /* verify email to register account */
 async function verifyAccount(req, res, next) {
   // Get auth header value
-  const token = req.body.verifyCode;
-  const accountId = req.body.accountId;
-  if (!token) {
-    return res.status(401).send("Từ chối truy cập");
+  const { verifyCode, accountId } = req.body;
+  if (!verifyCode) {
+    return res.status(401).json({message: "Từ chối truy cập"});
   }
   const result = await RegisterCodeDao.findRegisterCodeByUserId(accountId);
-  if (result.length === 0 || result[0].code !== token) {
+  if (result.length === 0 || result[0].code !== verifyCode) {
     return res.status(400).json({ message: "Mã xác nhận sai" });
   } else if (result[0].isAlreadyUse) {
     return res.status(400).json({ message: "Mã xác nhận đã được sử dụng" });
@@ -136,7 +126,8 @@ async function register(req, res, next) {
 
 /* Change password */
 async function changePassword(req, res, next) {
-  if (!req.body.newPassword) {
+  const { newPassword } = req.body;
+  if (!newPassword) {
     return res.status(200).json({ message: "Token chính xác" });
   }
   const errors = validationResult(req);
@@ -145,7 +136,6 @@ async function changePassword(req, res, next) {
   }
   try {
     const decoded = jwt_decode(req.header("auth-token"));
-    const newPassword = req.body.newPassword;
     await AccountDao.updatePassword(decoded.accountId, newPassword);
     res.status(200).json({ message: "Đổi mật khẩu thành công" });
   } catch (error) {
@@ -153,15 +143,39 @@ async function changePassword(req, res, next) {
   }
 }
 
+/* Create jwt token for login success */
+function createJWTToken(id, name) {
+  return jwt.sign({ id: id, name: name }, process.env.SECRET_TOKEN, {
+    expiresIn: "1h",
+  });
+}
 /* Login with google */
 async function loginGoogle(req, res, next) {
   const oAuth2Client = new OAuth2Client();
   const { accessToken, profile } = req.body;
-  console.log(accessToken, profile);
   try {
     const tokenInfo = await oAuth2Client.getTokenInfo(accessToken);
-
-    res.status(200).send({ message: tokenInfo });
+    const { email } = tokenInfo;
+    const user = await AccountDao.findAccountByUsernameOrEmail(email, null);
+    let token;
+    if (!user) {
+      const newUser = new Account({
+        email: email,
+        name: profile.name,
+        username: email,
+        isVerify: true,
+        role: process.env.ROLE_USER,
+      });
+      const result = await createAccount(newUser);
+      token = createJWTToken(result._id, result.name);
+    } else {
+      token = createJWTToken(user._id, user.name);
+    }
+    console.log(token)
+    res
+      .status(200)
+      .header("auth-token", token)
+      .json({ token: token, message: profile.name });
   } catch (error) {
     res.status(400).json({ message: "Access token không đúng" });
   }
