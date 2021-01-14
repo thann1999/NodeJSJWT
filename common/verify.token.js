@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 //Verify auth token
 function auth(req, res, next) {
   // Get auth header value
-  const token = req.header("auth-token");
+  const token = req.header(process.env.AUTH_TOKEN);
   // Check if token is undefined
   if (!token) {
     return res.status(401).send({ message: "Từ chối truy cập" });
@@ -20,7 +20,7 @@ function auth(req, res, next) {
 //Verify reset password token
 function resetPasswordToken(req, res, next) {
   // Get auth header value
-  const token = req.header("resetPassword-token");
+  const token = req.header(process.env.RESET_PASSWORD_TOKEN);
   // Check if token is undefined
   if (!token) {
     

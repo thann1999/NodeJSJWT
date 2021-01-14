@@ -32,7 +32,7 @@ async function login(req, res, next) {
       const token = createJWTToken(user._id, user.name);
       res
         .status(200)
-        .header("auth-token", token)
+        .header(process.env.AUTH_TOKEN, token)
         .json({ token: token, message: user.name });
     } else {
       res.status(401).json({ message: "Sai tên tài khoản hoặc mật khẩu" });
@@ -80,7 +80,7 @@ async function verifyAccount(req, res, next) {
 
 /* Check login or not */
 function checkLogin(req, res, next) {
-  const decoded = jwt_decode(req.header("auth-token"));
+  const decoded = jwt_decode(req.header(process.env.AUTH_TOKEN));
   res.status(200).json({ message: decoded.name });
 }
 
@@ -126,8 +126,8 @@ async function register(req, res, next) {
 
 /* Change password */
 async function changePassword(req, res, next) {
-  const { newPassword } = req.body;
-  if (!newPassword) {
+  const { password } = req.body;
+  if (!password) {
     return res.status(200).json({ message: "Token chính xác" });
   }
   const errors = validationResult(req);
@@ -135,8 +135,8 @@ async function changePassword(req, res, next) {
     return res.status(422).json({ message: errors.array() });
   }
   try {
-    const decoded = jwt_decode(req.header("auth-token"));
-    await AccountDao.updatePassword(decoded.accountId, newPassword);
+    const decoded = jwt_decode(req.header(process.env.RESET_PASSWORD_TOKEN));
+    await AccountDao.updatePassword(decoded.accountId, hashPassword(password));
     res.status(200).json({ message: "Đổi mật khẩu thành công" });
   } catch (error) {
     next(error);
@@ -163,6 +163,7 @@ async function loginGoogle(req, res, next) {
         email: email,
         name: profile.name,
         username: email,
+        password: null,
         isVerify: true,
         role: process.env.ROLE_USER,
       });
@@ -171,10 +172,9 @@ async function loginGoogle(req, res, next) {
     } else {
       token = createJWTToken(user._id, user.name);
     }
-    console.log(token)
     res
       .status(200)
-      .header("auth-token", token)
+      .header(process.env.AUTH_TOKEN, token)
       .json({ token: token, message: profile.name });
   } catch (error) {
     res.status(400).json({ message: "Access token không đúng" });
