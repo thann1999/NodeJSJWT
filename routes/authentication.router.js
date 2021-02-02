@@ -27,6 +27,9 @@ router.post("/forgot-password", authenticationController.forgotPassword);
 /* Login with google */
 router.post("/login-google", authenticationController.loginGoogle)
 
+/* Login with google */
+router.post("/login-facebook", authenticationController.loginFacebook)
+
 /* Reset password */
 router.post(
   "/reset-password",
