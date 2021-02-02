@@ -9,6 +9,7 @@ const accountSchema = new mongoose.Schema({
   },
   password: { type: String },
   name: { type: String, required: true },
+  avatar: {type: String},
   phone: { type: String },
   dateOfBirth: { type: Date },
   createdDate: { type: Date, default: Date.now, required: true },
