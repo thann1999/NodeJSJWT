@@ -1,7 +1,7 @@
 const nodemailer = require("nodemailer");
 const cryptoRandomString = require("crypto-random-string");
 const RegisterCode = require("../models/register.code.model");
-const RegisterCodeDao = require("../dao/register.code.dao");
+const RegisterCodeDao = require("../dao/register-code.dao");
 const jwt = require("jsonwebtoken");
 
 /* Send code to email */

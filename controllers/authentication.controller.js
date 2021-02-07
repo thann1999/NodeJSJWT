@@ -1,10 +1,10 @@
 const Account = require('../models/account.model');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const { validationResult, check } = require('express-validator');
-const { sendEmail, createMailCode, createMailLink } = require('./send.email');
+const { validationResult } = require('express-validator');
+const { sendEmail, createMailCode, createMailLink } = require('./send-email');
 const AccountDao = require('../dao/account.dao');
-const RegisterCodeDao = require('../dao/register.code.dao');
+const RegisterCodeDao = require('../dao/register-code.dao');
 const jwt_decode = require('jwt-decode');
 const { OAuth2Client } = require('google-auth-library');
 const { createAccount } = require('../dao/account.dao');
@@ -129,6 +129,12 @@ async function loginGoogle(req, res, next) {
         avatar: profile.imageUrl,
         name: profile.name,
         username: email,
+        bio: null,
+        company: null,
+        location: null,
+        dateOfBirth: null,
+        website: null,
+        github: null,
         password: null,
         isVerify: true,
         role: process.env.ROLE_USER,
@@ -164,6 +170,12 @@ async function loginFacebook(req, res, next) {
         name: userInfo.data.name,
         username: profile.email,
         password: null,
+        bio: null,
+        company: null,
+        location: null,
+        dateOfBirth: null,
+        website: null,
+        github: null,
         isVerify: true,
         role: process.env.ROLE_USER,
       });
@@ -201,6 +213,12 @@ async function register(req, res, next) {
       username: req.body.username,
       password: hashPassword(req.body.password),
       name: req.body.firstName + ' ' + req.body.lastName,
+      bio: null,
+      company: null,
+      location: null,
+      dateOfBirth: null,
+      website: null,
+      github: null,
       role: process.env.ROLE_USER,
     });
 
