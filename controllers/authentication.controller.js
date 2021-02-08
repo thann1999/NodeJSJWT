@@ -5,7 +5,6 @@ const { validationResult } = require('express-validator');
 const { sendEmail, createMailCode, createMailLink } = require('./send-email');
 const AccountDao = require('../dao/account.dao');
 const RegisterCodeDao = require('../dao/register-code.dao');
-const jwt_decode = require('jwt-decode');
 const { OAuth2Client } = require('google-auth-library');
 const { createAccount } = require('../dao/account.dao');
 const axios = require('axios');
@@ -31,8 +30,8 @@ async function login(req, res, next) {
     );
     if (user && user.isVerify) {
       const token = createJWTToken(user._id, user.name, user.avatar);
-      const message = {name: user.name, avatar: user.avatar}
-      console.log(message)
+      const message = { name: user.name, avatar: user.avatar };
+      console.log(message);
       res
         .status(200)
         .header(process.env.AUTH_TOKEN, token)
@@ -83,8 +82,7 @@ async function verifyAccount(req, res, next) {
 
 /* Check login or not */
 function checkLogin(req, res, next) {
-  const decoded = jwt_decode(req.header(process.env.AUTH_TOKEN));
-  const message = {name: decoded.name, avatar: decoded.avatar}
+  const message = { name: req.user.name, avatar: req.user.avatar };
   res.status(200).json({ message: message });
 }
 
@@ -99,8 +97,7 @@ async function changePassword(req, res, next) {
     return res.status(422).json({ message: errors.array() });
   }
   try {
-    const decoded = jwt_decode(req.header(process.env.RESET_PASSWORD_TOKEN));
-    await AccountDao.updatePassword(decoded.accountId, hashPassword(password));
+    await AccountDao.updatePassword(req.user.id, hashPassword(password));
     res.status(200).json({ message: 'Đổi mật khẩu thành công' });
   } catch (error) {
     next(error);
@@ -109,9 +106,13 @@ async function changePassword(req, res, next) {
 
 /* Create jwt token for login success */
 function createJWTToken(id, name, avatar) {
-  return jwt.sign({ id: id, name: name, avatar: avatar }, process.env.SECRET_TOKEN, {
-    expiresIn: '1h',
-  });
+  return jwt.sign(
+    { id: id, name: name, avatar: avatar },
+    process.env.SECRET_TOKEN,
+    {
+      expiresIn: '1h',
+    }
+  );
 }
 
 /* Login with google */
@@ -144,7 +145,7 @@ async function loginGoogle(req, res, next) {
     } else {
       token = createJWTToken(user._id, user.name, profile.imageUrl);
     }
-    const message = {name: profile.name, avatar: profile.imageUrl}
+    const message = { name: profile.name, avatar: profile.imageUrl };
     res
       .status(200)
       .header(process.env.AUTH_TOKEN, token)
@@ -161,7 +162,10 @@ async function loginFacebook(req, res, next) {
     const userInfo = await axios.get(
       `https://graph.facebook.com/me?access_token=${accessToken}`
     );
-    const user = await AccountDao.findAccountByUsernameOrEmail(profile.email, null);
+    const user = await AccountDao.findAccountByUsernameOrEmail(
+      profile.email,
+      null
+    );
     let token;
     if (!user) {
       const newUser = new Account({
@@ -180,11 +184,11 @@ async function loginFacebook(req, res, next) {
         role: process.env.ROLE_USER,
       });
       const result = await createAccount(newUser);
-      token = createJWTToken(result._id, result.name, profile.avatar );
+      token = createJWTToken(result._id, result.name, profile.avatar);
     } else {
       token = createJWTToken(user._id, user.name, profile.avatar);
     }
-    const message = {name: userInfo.data.name, avatar: profile.avatar}
+    const message = { name: userInfo.data.name, avatar: profile.avatar };
     res
       .status(200)
       .header(process.env.AUTH_TOKEN, token)
