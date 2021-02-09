@@ -52,10 +52,17 @@ class AccountDao extends BaseDao {
     return await super.deleteOne(Account, query);
   }
 
-  /*Update activate account */
+  /*Update password account */
   async updatePassword(accountId, newPassword) {
     const query = { _id: accountId };
     const update = { password: newPassword };
+    return await super.updateOne(Account, query, update);
+  }
+
+  /* Update profile */
+  async updateProfile(accountId, newProfile) {
+    const query = {_id: accountId}
+    const update = newProfile
     return await super.updateOne(Account, query, update);
   }
 }

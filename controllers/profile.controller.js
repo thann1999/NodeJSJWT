@@ -22,6 +22,17 @@ async function getProfile(req, res, next) {
   }
 }
 
+async function updateProfile(req, res, next) {
+  try {
+    const profile = req.body
+    await AccountDao.updateProfile(req.user.id, profile)
+    res.status(200).json({message: "Cập nhật profile thành công"})
+  } catch (error) {
+    next(error)
+  }
+}
+
 module.exports = {
   getProfile: getProfile,
+  updateProfile: updateProfile,
 };
