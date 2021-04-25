@@ -1,7 +1,7 @@
 var express = require("express");
 const authenticationController = require("../controllers/authentication.controller");
 const { validate } = require("../common/validation-account");
-const { auth, resetPasswordToken } = require("../common/verify-token");
+const { auth } = require("../common/verify-token");
 const router = express.Router();
 
 
@@ -30,10 +30,16 @@ router.post("/login-google", authenticationController.loginGoogle)
 /* Login with google */
 router.post("/login-facebook", authenticationController.loginFacebook)
 
+/* Refresh token */
+router.post("/refresh-token", authenticationController.getNewAccessToken)
+
+/* Logout  */
+router.post("/logout", authenticationController.deleteRefreshToken)
+
 /* Reset password */
 router.post(
   "/reset-password",
-  resetPasswordToken,
+  auth,
   validate.validatePassword(),
   authenticationController.changePassword
 );

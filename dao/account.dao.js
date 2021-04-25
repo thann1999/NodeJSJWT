@@ -1,15 +1,8 @@
-const BaseDao = require("./base.dao");
-const Account = require("../models/account.model");
+const BaseDao = require('./base.dao');
+const Account = require('../models/account.model');
 
 class AccountDao extends BaseDao {
-  /*Find account with username and password */
-  async findAccountByUsernamePassword(username, password) {
-    const query = {
-      username: username,
-      password: password,
-    };
-    return await super.findOne(Account, query);
-  }
+  datasetPopulate = 'datasets';
 
   /*Find account with username and password */
   async findAccountByUsernamePassword(username, password) {
@@ -36,7 +29,7 @@ class AccountDao extends BaseDao {
 
   /*Create account */
   async createAccount(account = new Account()) {
-    return await super.insert(account);
+    return await super.insertOne(account);
   }
 
   /*Update activate account */
@@ -61,10 +54,41 @@ class AccountDao extends BaseDao {
 
   /* Update profile */
   async updateProfile(accountId, newProfile) {
-    const query = {_id: accountId}
-    const update = newProfile
+    const query = { _id: accountId };
+    const {bio, name, company, location, website, github, dateOfBirth} = newProfile
+    const update = {
+      bio: bio,
+      name: name,
+      company: company,
+      location: location, 
+      website: website,
+      github: github, 
+      dateOfBirth: dateOfBirth
+    };
     return await super.updateOne(Account, query, update);
   }
+
+  /* Update datasetId into field dataset */
+  async updateDatasetsOfAccount(accountId, datasetId) {
+    const query = { _id: accountId };
+    const update = { $push: { datasets: datasetId } };
+    return await super.updateOne(Account, query, update);
+  }
+
+  /* Update profile */
+  async updateAvatar(accountId, avatar) {
+    const query = { _id: accountId };
+    const update = { avatar: avatar };
+    return await super.updateOne(Account, query, update);
+  }
+
+  /* Find all dataset of account*/
+  findAllDatasetOfAccount = async (username) => {
+    const query = {
+      username: username,
+    };
+    return await super.findOneAndPopulate(Account, query, this.datasetPopulate, {}, {});
+  };
 }
 
 const instance = new AccountDao();

@@ -1,10 +1,10 @@
 const BaseDao = require("./base.dao");
-const RegisterCode = require("../models/register.code.model");
+const RegisterCode = require("../models/register-code.model");
 
 class RegisterCodeDao extends BaseDao {
   /* Create register code */
   async createCode(code = new RegisterCode()) {
-    return await super.insert(code);
+    return await super.insertOne(code);
   }
 
   /*Find register code by id*/

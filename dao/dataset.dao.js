@@ -1,0 +1,205 @@
+const BaseDao = require('./base.dao');
+const AccountDao = require('./account.dao');
+const mongoose = require('mongoose');
+const Dataset = require('../models/dataset.model');
+
+class DatasetDao extends BaseDao {
+  accountPopulate = 'owner';
+  filesPopulate = 'files';
+
+  /*Create dataset */
+  insertDataset = async (dataset = new Dataset()) => {
+    return await super.insertOne(dataset);
+  };
+
+  /* Find all file info of dataset */
+  findAllFilesOfDataset = async (datasetId) => {
+    const query = {
+      _id: datasetId,
+    };
+    return await super.findOneAndPopulate(
+      Dataset,
+      query,
+      this.filesPopulate,
+      {},
+      {}
+    );
+  };
+
+  /* Find dataset and account info */
+  findDatasetAndAccountInfo = async (url) => {
+    const select = '_id name username avatar email';
+    const query = {
+      url: url,
+    };
+    return await super.findOneAndPopulate(
+      Dataset,
+      query,
+      this.accountPopulate,
+      {},
+      select
+    );
+  };
+
+  /* Find one dataset by id */
+  findDatasetById = async (datasetId) => {
+    const query = {
+      _id: datasetId,
+    };
+    return await super.findOne(Dataset, query);
+  };
+
+  /*update description dataset */
+  updateDescription = async (datasetId, description) => {
+    const query = {
+      _id: datasetId,
+    };
+    const update = {
+      description: description,
+    };
+    return await super.updateOne(Dataset, query, update);
+  };
+
+  /*update visibility dataset */
+  updateVisibility = async (datasetId, visibility) => {
+    const query = {
+      _id: datasetId,
+    };
+    const update = {
+      visibility: visibility,
+    };
+    return await super.updateOne(Dataset, query, update);
+  };
+
+  /* update title and subtitle dataset */
+  updateTitleAndSubtitle = async (datasetId, title, subtitle) => {
+    const query = {
+      _id: datasetId,
+    };
+    const update = {
+      title: title,
+      subtitle: subtitle,
+    };
+    return await super.updateOne(Dataset, query, update);
+  };
+
+  /* update title and subtitle dataset */
+  updateBanner = async (datasetId, banner) => {
+    const query = {
+      _id: datasetId,
+    };
+    const update = {
+      banner: banner,
+    };
+    return await super.updateOne(Dataset, query, update);
+  };
+
+  /* update title and subtitle dataset */
+  updateThumbnail = async (datasetId, thumbnail) => {
+    const query = {
+      _id: datasetId,
+    };
+    const update = {
+      thumbnail: thumbnail,
+    };
+    return await super.updateOne(Dataset, query, update);
+  };
+
+  /* update title and subtitle dataset */
+  updateTags = async (datasetId, tags) => {
+    const query = {
+      _id: datasetId,
+    };
+    const update = {
+      tags: tags,
+    };
+    return await super.updateOne(Dataset, query, update);
+  };
+
+  /* find dataset default sort by like */
+  findDatasetSortByLike = async (
+    title,
+    tags,
+    fileType,
+    minSize,
+    maxSize,
+    like,
+    date,
+    limit,
+    skip
+  ) => {
+    const query = super.createQuery(title, fileType, minSize, maxSize);
+    if (tags && tags.length > 1) query['tags.name'] = { $all: tags };
+    let sort = {};
+    if (like) {
+      sort = like === 'desc' ? { countLike: -1 } : { countLike: 1 };
+    }
+    const select = '_id name username avatar email';
+    return await super.findSortLimitSkipAndPopulate(
+      Dataset,
+      query,
+      sort,
+      limit,
+      skip,
+      this.accountPopulate,
+      select
+    );
+  };
+
+  /* Count datasets by query*/
+  countDatasets = async (title, tags, fileType, minSize, maxSize, date) => {
+    const query = super.createQuery(title, fileType, minSize, maxSize);
+    if (tags && tags.length > 1) query['tags.name'] = { $all: tags };
+    return await super.countDocuments(Dataset, query);
+  };
+
+  /* Check user like or not */
+  checkLikeOrNot = async (datasetId, accountId) => {
+    const query = { _id: datasetId, like: [accountId] };
+    return await super.findOne(Dataset, query);
+  };
+
+  /* Like or unlike dataset */
+  likeOrUnLike = async (datasetId, accountId, like) => {
+    const query = { _id: datasetId };
+    let update;
+    if (like) {
+      update = {
+        $push: { like: accountId },
+        $inc: { countLike: 1 },
+      };
+    } else {
+      update = {
+        $pull: { like: accountId },
+        $inc: { countLike: -1 },
+      };
+    }
+    return await super.updateOne(Dataset, query, update);
+  };
+
+  updateFileIdInDataset = async (datasetId, fileId, isDelete) => {
+    const query = { _id: datasetId };
+    const update = isDelete
+      ? { $pullAll: { files: fileId } }
+      : { $push: { files: { $each: fileId } } };
+
+    return await super.updateOne(Dataset, query, update);
+  };
+
+  createNewVersionDataset = async (datasetId, version, size) => {
+    const query = { _id: datasetId };
+    const update = {
+      size: size,
+      $push: {
+        versions: {
+          $each: [version],
+          $sort: { createdDate: -1 },
+        },
+      },
+    };
+    return await super.updateOne(Dataset, query, update);
+  };
+}
+
+const instance = new DatasetDao();
+module.exports = instance;

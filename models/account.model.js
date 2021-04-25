@@ -1,10 +1,9 @@
 const mongoose = require("mongoose");
 
 const accountSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
+  email: { type: String, required: true },
   username: {
     type: String,
-    unique: true,
     required: true,
   },
   password: { type: String },
@@ -19,6 +18,7 @@ const accountSchema = new mongoose.Schema({
   createdDate: { type: Date, default: Date.now, required: true },
   role: { type: String, required: true },
   isVerify: { type: Boolean, default: false, required: true },
+  datasets: [{type: mongoose.Types.ObjectId, ref: "Dataset"}]
 });
 
 module.exports = mongoose.model("Account", accountSchema);

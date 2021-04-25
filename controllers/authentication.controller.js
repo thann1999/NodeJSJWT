@@ -1,12 +1,13 @@
 const Account = require('../models/account.model');
+const RefreshToken = require('../models/refresh-token.model');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const { sendEmail, createMailCode, createMailLink } = require('./send-email');
 const AccountDao = require('../dao/account.dao');
+const RefreshTokenDao = require('../dao/refresh-token.dao');
 const RegisterCodeDao = require('../dao/register-code.dao');
 const { OAuth2Client } = require('google-auth-library');
-const { createAccount } = require('../dao/account.dao');
 const axios = require('axios');
 
 /* Hashing password by SHA256 */
@@ -23,24 +24,24 @@ async function login(req, res, next) {
     return res.status(400).json(errors.array());
   }
   //Query account
-  try {
-    const user = await AccountDao.findAccountByUsernamePassword(
-      req.body.username,
-      hashPassword(req.body.password)
-    );
-    if (user && user.isVerify) {
-      const token = createJWTToken(user._id, user.name, user.avatar);
-      const message = { name: user.name, avatar: user.avatar };
-      console.log(message);
-      res
-        .status(200)
-        .header(process.env.AUTH_TOKEN, token)
-        .json({ token: token, message: message });
-    } else {
-      res.status(401).json({ message: 'Sai tên tài khoản hoặc mật khẩu' });
-    }
-  } catch (error) {
-    next(error);
+  const user = await AccountDao.findAccountByUsernamePassword(
+    req.body.username,
+    hashPassword(req.body.password)
+  );
+  if (user && user.isVerify) {
+    const token = await createJWTToken(user._id, user.name, user.avatar);
+    const data = {
+      accountId: user._id,
+      avatar: user.avatar,
+      username: user.username,
+      name: user.name,
+    };
+    res
+      .status(200)
+      .header(process.env.AUTH_TOKEN, token)
+      .json({ token: token, data: data });
+  } else {
+    res.status(401).json({ message: 'Sai tên tài khoản hoặc mật khẩu' });
   }
 }
 
@@ -81,9 +82,19 @@ async function verifyAccount(req, res, next) {
 }
 
 /* Check login or not */
-function checkLogin(req, res, next) {
-  const message = { name: req.user.name, avatar: req.user.avatar };
-  res.status(200).json({ message: message });
+async function checkLogin(req, res, next) {
+  try {
+    const result = await AccountDao.findAccountById(req.user.id);
+    const data = {
+      accountId: req.user.id,
+      avatar: result.avatar,
+      username: result.username,
+      name: result.name,
+    };
+    res.status(200).json({ data: data });
+  } catch (error) {
+    next(error);
+  }
 }
 
 /* Change password */
@@ -92,6 +103,7 @@ async function changePassword(req, res, next) {
   if (!password) {
     return res.status(200).json({ message: 'Token chính xác' });
   }
+  console.log(password, req.user);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).json({ message: errors.array() });
@@ -105,14 +117,28 @@ async function changePassword(req, res, next) {
 }
 
 /* Create jwt token for login success */
-function createJWTToken(id, name, avatar) {
-  return jwt.sign(
+async function createJWTToken(id, name, avatar) {
+  const refreshToken = jwt.sign(
     { id: id, name: name, avatar: avatar },
-    process.env.SECRET_TOKEN,
-    {
-      expiresIn: '1h',
-    }
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: '20d' }
   );
+
+  try {
+    await RefreshTokenDao.createToken(
+      new RefreshToken({ token: refreshToken })
+    );
+    return {
+      accessToken: jwt.sign(
+        { id: id, name: name, avatar: avatar },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: '1h' }
+      ),
+      refreshToken: refreshToken,
+    };
+  } catch (error) {
+    throw error;
+  }
 }
 
 /* Login with google */
@@ -123,13 +149,13 @@ async function loginGoogle(req, res, next) {
     const tokenInfo = await oAuth2Client.getTokenInfo(accessToken);
     const { email } = tokenInfo;
     const user = await AccountDao.findAccountByUsernameOrEmail(email, null);
-    let token;
+    let token, data;
     if (!user) {
       const newUser = new Account({
         email: email,
         avatar: profile.imageUrl,
         name: profile.name,
-        username: email,
+        username: email.split('@')[0],
         bio: '',
         company: '',
         location: '',
@@ -139,17 +165,29 @@ async function loginGoogle(req, res, next) {
         password: '',
         isVerify: true,
         role: process.env.ROLE_USER,
+        datasets: [],
       });
-      const result = await createAccount(newUser);
-      token = createJWTToken(result._id, result.name, profile.imageUrl);
+      const result = await AccountDao.createAccount(newUser);
+      data = {
+        accountId: result._id,
+        avatar: result.imageUrl,
+        username: result.username,
+        name: result.name,
+      };
+      token = await createJWTToken(result._id, result.name, profile.imageUrl);
     } else {
-      token = createJWTToken(user._id, user.name, profile.imageUrl);
+      data = {
+        accountId: user._id,
+        avatar: user.imageUrl,
+        username: user.username,
+        name: user.name,
+      };
+      token = await createJWTToken(user._id, user.name, profile.imageUrl);
     }
-    const message = { name: profile.name, avatar: profile.imageUrl };
     res
       .status(200)
       .header(process.env.AUTH_TOKEN, token)
-      .json({ token: token, message: message });
+      .json({ token: token, data: data });
   } catch (error) {
     res.status(400).json({ message: 'Access token không đúng' });
   }
@@ -166,13 +204,13 @@ async function loginFacebook(req, res, next) {
       profile.email,
       null
     );
-    let token;
+    let token, data;
     if (!user) {
       const newUser = new Account({
         email: profile.email,
         avatar: profile.avatar,
         name: userInfo.data.name,
-        username: profile.email,
+        username: profile.email.split('@')[0],
         password: null,
         bio: '',
         company: '',
@@ -182,17 +220,29 @@ async function loginFacebook(req, res, next) {
         github: '',
         isVerify: true,
         role: process.env.ROLE_USER,
+        datasets: [],
       });
-      const result = await createAccount(newUser);
-      token = createJWTToken(result._id, result.name, profile.avatar);
+      const result = await AccountDao.createAccount(newUser);
+      data = {
+        avatar: result.avatar,
+        accountId: result._id,
+        username: result.username,
+        name: result.name,
+      };
+      token = await createJWTToken(result._id, result.name, profile.avatar);
     } else {
-      token = createJWTToken(user._id, user.name, profile.avatar);
+      data = {
+        avatar: user.avatar,
+        username: user.username,
+        accountId: user._id,
+        name: user.name
+      };
+      token = await createJWTToken(user._id, user.name, profile.avatar);
     }
-    const message = { name: userInfo.data.name, avatar: profile.avatar };
     res
       .status(200)
       .header(process.env.AUTH_TOKEN, token)
-      .json({ token: token, message: message });
+      .json({ token: token, data: data });
   } catch (error) {
     res.status(400).json({ message: 'Access token không đúng' });
   }
@@ -224,6 +274,7 @@ async function register(req, res, next) {
       website: '',
       github: '',
       role: process.env.ROLE_USER,
+      datasets: [],
     });
 
     //If account exist
@@ -239,9 +290,51 @@ async function register(req, res, next) {
     }
     const result = await AccountDao.createAccount(newUser);
     sendEmail(createMailCode(result.email, result._id));
-    res.status(200).json({ message: result._id });
+    res.status(200).json({ data: result._id });
   } catch (error) {
     next(error);
+  }
+}
+
+async function getNewAccessToken(req, res, next) {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Không có refresh token' });
+  }
+  const result = await RefreshTokenDao.findRefreshTokenByToken(refreshToken);
+  if (!result) {
+    return res.status(403).json({ message: 'Refresh token sai' });
+  }
+  try {
+    const verified = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const { id, name, avatar } = verified;
+    const account = await AccountDao.findAccountById(id);
+    const data = {
+      accountId: account._id,
+      avatar: account.avatar,
+      username: account.username,
+    };
+    const token = jwt.sign(
+      { id: id, name: name, avatar: avatar },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: '1h' }
+    );
+    res.status(200).json({ token: token, data: data });
+  } catch (error) {
+    return res.status(403).json({ message: 'Refresh token sai' });
+  }
+}
+
+async function deleteRefreshToken(req, res, next) {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'Không có refresh token' });
+    }
+    await RefreshTokenDao.deleteToken(refreshToken);
+    res.status(200).json({ message: 'Đăng xuất thành công' });
+  } catch (error) {
+    return res.status(401).json({ message: 'Refresh token sai' });
   }
 }
 
@@ -254,4 +347,7 @@ module.exports = {
   changePassword: changePassword,
   loginGoogle: loginGoogle,
   loginFacebook: loginFacebook,
+  createJWTToken: createJWTToken,
+  getNewAccessToken: getNewAccessToken,
+  deleteRefreshToken: deleteRefreshToken,
 };

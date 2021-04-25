@@ -1,7 +1,19 @@
 class BaseDao {
-  insert(doc) {
+  insertOne(doc) {
     return new Promise((resolve, reject) => {
       doc.save((err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
+    });
+  }
+
+  insertMany(doc, arrValues) {
+    return new Promise((resolve, reject) => {
+      doc.insertMany(arrValues, (err, result) => {
         if (err) {
           reject(err);
         } else {
@@ -71,9 +83,9 @@ class BaseDao {
     });
   }
 
-  replaceOne(model, query, replace) {
+  deleteMany(model, query) {
     return new Promise((resolve, reject) => {
-      model.findOneAndReplace(query, replace, (err, result) => {
+      model.deleteMany(query, (err, result) => {
         if (err) {
           reject(err);
         } else {
@@ -97,6 +109,184 @@ class BaseDao {
           }
         });
     });
+  }
+
+  findOneAndPopulate(model, query, populate, nestedQuery, select) {
+    return new Promise((resolve, reject) => {
+      model
+        .findOne(query)
+        .populate({ path: populate, select: select, match: nestedQuery })
+        .exec((err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+    });
+  }
+
+  findAndPopulate(model, query, populate, nestedQuery, select) {
+    return new Promise((resolve, reject) => {
+      model
+        .find(query)
+        .populate({ path: populate, select: select, match: nestedQuery })
+        .exec((err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+    });
+  }
+
+  findAndMultiplePopulate(
+    model,
+    query,
+    populate1,
+    nestedQuery1,
+    select1,
+    populate2,
+    nestedQuery2,
+    select2,
+    populate3,
+    select3
+  ) {
+    return new Promise((resolve, reject) => {
+      model
+        .find(query)
+        .populate({ path: populate1, select: select1, match: nestedQuery1 })
+        .populate({
+          path: populate2,
+          select: select2,
+          match: nestedQuery2,
+          populate: { path: populate3, select: select3 },
+        })
+        .exec((err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+    });
+  }
+
+  findSortLimitSkipAndPopulate(
+    model,
+    query,
+    sort,
+    limit,
+    skip,
+    populate,
+    select
+  ) {
+    return new Promise((resolve, reject) => {
+      model
+        .find(query)
+        .sort(sort)
+        .limit(limit)
+        .skip(skip)
+        .populate({ path: populate, select: select })
+        .exec((err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+    });
+  }
+
+  findSortLimitPopulateAndNestedQuery(
+    model,
+    query,
+    sort,
+    limit,
+    populate1,
+    nestedSort,
+    nestedLimit,
+    nestedSkip,
+    nestedPopulate,
+    select
+  ) {
+    return new Promise((resolve, reject) => {
+      model
+        .find(query)
+        .sort(sort)
+        .limit(limit)
+        .populate({
+          path: populate1,
+          populate: { path: nestedPopulate, select: select },
+          sort: nestedSort,
+          skip: nestedSkip,
+          limit: nestedLimit,
+        })
+        .exec((err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+    });
+  }
+
+  findOneSortLimitPopulateAndNestedQuery(
+    model,
+    query,
+    populate1,
+    nestedSort,
+    nestedLimit,
+    nestedSkip,
+    nestedQuery,
+    nestedPopulate,
+    select
+  ) {
+    return new Promise((resolve, reject) => {
+      model
+        .findOne(query)
+        .populate({
+          path: populate1,
+          populate: {
+            path: nestedPopulate,
+            select: select,
+          },
+          match: nestedQuery,
+          sort: nestedSort,
+          skip: nestedSkip,
+          limit: nestedLimit,
+        })
+        .exec((err, result) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+    });
+  }
+
+  countDocuments(model, query) {
+    return new Promise((resolve, reject) => {
+      model.countDocuments(query).exec((err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
+    });
+  }
+
+  /* Handle common */
+  createQuery(title, fileType, minSize, maxSize) {
+    const query = {};
+    if (fileType) query['summary.fileTypes'] = [fileType];
+    if (minSize && maxSize) query.size = { $gte: minSize, $lte: maxSize };
+    if (title) query.title = { $regex: '.*' + title + '.*' };
+    return query;
   }
 }
 

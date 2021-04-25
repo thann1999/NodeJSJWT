@@ -1,37 +1,25 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
 
 //Verify auth token
 function auth(req, res, next) {
   // Get auth header value
-  const token = req.header(process.env.AUTH_TOKEN);
+  const token =
+    req.header(process.env.AUTH_TOKEN) === 'null'
+      ? req.header(process.env.RESET_PASSWORD_TOKEN)
+      : req.header(process.env.AUTH_TOKEN);
   // Check if token is undefined
   if (!token) {
-    return res.status(401).send({ message: "Từ chối truy cập" });
+    return res.status(401).send({ message: 'Không có access token' });
   }
   try {
-    const verified = jwt.verify(token, process.env.SECRET_TOKEN);
+    const verified = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
     req.user = verified;
     next();
   } catch (error) {
-    res.status(400).send({ message: "Token không đúng" });
+    res
+      .status(403)
+      .send({ message: 'Access token không đúng. Hãy thử đăng nhập lại' });
   }
 }
 
-//Verify reset password token
-function resetPasswordToken(req, res, next) {
-  // Get auth header value
-  const token = req.header(process.env.RESET_PASSWORD_TOKEN);
-  // Check if token is undefined
-  if (!token) {
-    
-    return res.status(401).send({ message: "Từ chối truy cập" });
-  }
-  try {
-    jwt.verify(token, process.env.SECRET_TOKEN);
-    next();
-  } catch (error) {
-    res.status(400).send({ message: "Token không đúng" });
-  }
-}
-
-module.exports = { auth: auth, resetPasswordToken: resetPasswordToken };
+module.exports = { auth: auth };

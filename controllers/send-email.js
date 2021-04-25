@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 const cryptoRandomString = require("crypto-random-string");
-const RegisterCode = require("../models/register.code.model");
+const RegisterCode = require("../models/register-code.model");
 const RegisterCodeDao = require("../dao/register-code.dao");
 const jwt = require("jsonwebtoken");
 
@@ -43,7 +43,7 @@ function createMailCode(email, accountId) {
 }
 
 function createMailLink(account) {
-  const resetCode = jwt.sign({ accountId: account._id }, process.env.SECRET_TOKEN, {
+  const resetCode = jwt.sign({ id: account._id }, process.env.ACCESS_TOKEN_SECRET, {
     expiresIn: "2h",
   });
 
