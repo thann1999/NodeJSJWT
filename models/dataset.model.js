@@ -6,7 +6,7 @@ const datasetSchema = new mongoose.Schema({
   owner: { type: mongoose.Types.ObjectId, required: true, ref: 'Account' },
   subtitle: { type: String },
   description: { type: String },
-  tags: [{ type: Object }],
+  tags: [{ type: [] }],
   like: [{ type: mongoose.Types.ObjectId, required: true }],
   countLike: { type: Number },
   url: { type: String, required: true },

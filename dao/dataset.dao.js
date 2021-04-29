@@ -196,6 +196,7 @@ class DatasetDao extends BaseDao {
           $sort: { createdDate: -1 },
         },
       },
+      lastUpdate: new Date(),
     };
     return await super.updateOne(Dataset, query, update);
   };

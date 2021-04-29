@@ -67,28 +67,10 @@ router.post(
   datasetController.updateDatasetTitleAndSubtitle
 );
 
-/* Update banner dataset */
-router.post(
-  '/update/banner',
-  auth,
-  async (req, res, next) => {
-    try {
-      const upload = util.promisify(uploadImage);
-      await upload(req, res);
-      next();
-    } catch (error) {
-      if (error instanceof multer.MulterError || error) {
-        // A Multer error occurred when uploading.
-        return res.status(400).json({ message: error.message });
-      }
-    }
-  },
-  datasetController.updateDatasetBanner
-);
 
-/* Update banner dataset */
+/* Update banner/thumbnail dataset */
 router.post(
-  '/update/thumbnail',
+  '/update/image',
   auth,
   async (req, res, next) => {
     try {
@@ -102,7 +84,7 @@ router.post(
       }
     }
   },
-  datasetController.updateDatasetThumbnail
+  datasetController.updateDatasetImage
 );
 
 /* Get all tags */

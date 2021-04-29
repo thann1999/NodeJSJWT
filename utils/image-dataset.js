@@ -11,6 +11,11 @@ const DEFAULT_THUMBNAIL = [
   '1lxg1D49NnZsYfhxl6Xm-p_iOLEPds8KM'
 ]
 
+const IMAGE_TYPE = {
+  BANNER: 0,
+  THUMBNAIL: 1
+}
+
 const getRandomImage = () => {
   const random  = Math.floor(Math.random() * DEFAULT_BANNER.length)
   return {
@@ -20,5 +25,6 @@ const getRandomImage = () => {
 }
 
 module.exports = {
-  getRandomImage: getRandomImage
+  getRandomImage: getRandomImage,
+  IMAGE_TYPE: IMAGE_TYPE
 }

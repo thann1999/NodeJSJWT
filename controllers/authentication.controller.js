@@ -64,20 +64,23 @@ async function verifyAccount(req, res, next) {
   if (!verifyCode) {
     return res.status(401).json({ message: 'Từ chối truy cập' });
   }
+
   const result = await RegisterCodeDao.findRegisterCodeByUserId(accountId);
-  if (result.length === 0 || result[0].code !== verifyCode) {
+  const findCode = result.find(item => item.code === verifyCode)
+  if (findCode ===  undefined) {
     return res.status(400).json({ message: 'Mã xác nhận sai' });
-  } else if (result[0].isAlreadyUse) {
+  } else if (findCode.isAlreadyUse) {
     return res.status(400).json({ message: 'Mã xác nhận đã được sử dụng' });
   }
+
   //check expired code
-  const minute = Math.abs(new Date() - result[0].createdDate) / (1000 * 60);
+  const minute = Math.abs(new Date() - findCode.createdDate) / (1000 * 60);
   if (minute > process.env.EXPIRE_MINUTE_REGISTER_CODE) {
     return res.status(400).json({ message: 'Mã xác nhận đã quá hạn' });
   }
   const isVerify = true;
   await AccountDao.updateVerifyAccount(accountId, isVerify);
-  await RegisterCodeDao.updateAlreadyUse(result[0]._id);
+  await RegisterCodeDao.updateAlreadyUse(findCode._id);
   res.status(200).json({ message: 'Mã xác nhận đúng' });
 }
 

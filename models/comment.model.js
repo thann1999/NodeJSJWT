@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const commentSchema = new mongoose.Schema({
   datasetId: {type: mongoose.Types.ObjectId, required: true, ref: "Dataset", indexes: true},
-  commentator: {type: String, required: true, ref: "Account"},
+  commentator: {type: mongoose.Types.ObjectId, required: true, ref: "Account"},
   content: {type: String, required: true},
   like: [{type: mongoose.Types.ObjectId, required: true ,ref: "Account"}],
   countLike: {type: Number, required: true},

@@ -6,7 +6,7 @@ const FileDao = require('../dao/file.dao');
 const fs = require('fs');
 const { validationResult } = require('express-validator');
 const TagsDao = require('../dao/tags.dao');
-const { getRandomImage } = require('../utils/default-image-dataset');
+const { getRandomImage, IMAGE_TYPE } = require('../utils/image-dataset');
 const { uploadImageGoogleDrive } = require('../utils/upload-google-drive');
 const AdmZip = require('adm-zip');
 const path = require('path');
@@ -116,19 +116,21 @@ const updateDatasetBanner = async (req, res, next) => {
   const { datasetId } = req.body;
   const idImage = await uploadImageGoogleDrive(req.file);
   const googleDriveLink = `https://drive.google.com/uc?export=view&id=${idImage}`;
-  await DatasetDao.updateBanner(datasetId, googleDriveLink);
+
   res
     .status(200)
     .json({ message: 'Cập nhật thành công', data: googleDriveLink });
 };
 
-/* Update dataset thumbnail */
-const updateDatasetThumbnail = async (req, res, next) => {
+/* Update dataset banner/thumbnail */
+const updateDatasetImage = async (req, res, next) => {
   try {
-    const { datasetId } = req.body;
+    const { datasetId, imageType } = req.body;
     const idImage = await uploadImageGoogleDrive(req.file);
     const googleDriveLink = `https://drive.google.com/uc?export=view&id=${idImage}`;
-    await DatasetDao.updateThumbnail(datasetId, googleDriveLink);
+    imageType === IMAGE_TYPE.BANNER
+      ? await DatasetDao.updateBanner(datasetId, googleDriveLink)
+      : await DatasetDao.updateThumbnail(datasetId, googleDriveLink);
     res
       .status(200)
       .json({ message: 'Cập nhật thành công', data: googleDriveLink });
@@ -335,7 +337,7 @@ async function createNewVersion(req, res, next) {
     FileDao.deleteManyFiles(deleteId),
   ]);
   const { datasetSummary, fileChanges, filesResult, size } = result[0];
-  const result1 = await Promise.all([
+  await Promise.all([
     DatasetDao.createNewVersionDataset(
       datasetId,
       { version: version, fileChanges: fileChanges },
@@ -347,7 +349,6 @@ async function createNewVersion(req, res, next) {
       false
     ),
   ]);
-  console.log(result1);
 
   res.status(200).json({ message: 'ok' });
 }
@@ -499,8 +500,7 @@ module.exports = {
   updateDatasetDescription: updateDatasetDescription,
   updateDatasetVisibility: updateDatasetVisibility,
   updateDatasetTitleAndSubtitle: updateDatasetTitleAndSubtitle,
-  updateDatasetBanner: updateDatasetBanner,
-  updateDatasetThumbnail: updateDatasetThumbnail,
+  updateDatasetImage: updateDatasetImage,
   updateDatasetTags: updateDatasetTags,
   findAllTags: findAllTags,
   findTrendingDataset: findTrendingDataset,
