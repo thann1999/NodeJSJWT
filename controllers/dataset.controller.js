@@ -12,6 +12,7 @@ const AdmZip = require('adm-zip');
 const path = require('path');
 const { columnsAnalysis } = require('./common/analysis-column');
 const classes = require('../utils/common-classes');
+const _ = require('lodash');
 const { readFileByPath } = require('./common/read-file');
 const { FileVersion, FILE_STATUS } = require('../utils/file-version');
 const { COLUMN_TYPE, FILE_TYPES } = require('../utils/file-column-type');
@@ -311,32 +312,46 @@ async function createNewVersion(req, res, next) {
   const previousFiles = JSON.parse(req.body.previousFiles);
   const datasetPath = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}/files/`;
   //remove duplicate file
-  const currentDataset = await DatasetDao.findDatasetById(datasetId);
+  const currentDataset = await DatasetDao.findAllFilesOfDataset(datasetId);
 
-  const deleteId = currentDataset.files.filter(
-    (id1) => !previousFiles.some((file) => id1.toString() === file._id)
+  const deleteFiles = currentDataset.files.filter(
+    ({ _id: id1 }) => !previousFiles.some((file) => id1.toString() === file._id)
   );
+
   const modifies = previousFiles.filter(({ name: name1 }) =>
     req.files.some(({ originalname: name2 }) => name1 === name2)
   );
-  modifies.forEach((file) => {
-    deleteId.push(file._id);
-  });
-  //TODO: Call api to delete and update dataset files
-  let subSize = 0;
-  previousFiles.forEach((file) => {
-    if (deleteId.some((id) => file._id === id)) {
-      subSize += file.size;
-    }
-  });
+
+  const deleteAndModifies = _.union(modifies, deleteFiles);
 
   //add file and get result, summary
   const result = await Promise.all([
     addFile(req.files, fileModifies, datasetPath),
-    DatasetDao.updateFileIdInDataset(datasetId, deleteId, true),
-    FileDao.deleteManyFiles(deleteId),
+    DatasetDao.updateFileIdInDataset(
+      datasetId,
+      deleteFiles.map((file) => file._id),
+      true
+    ),
+    FileDao.deleteManyFiles(deleteAndModifies.map((file) => file._id)),
   ]);
+
   const { datasetSummary, fileChanges, filesResult, size } = result[0];
+
+  let subSize = 0;
+  deleteAndModifies.forEach((file) => {
+    subSize += file.size;
+  });
+
+  deleteFiles.forEach((file) => {
+    const countRows = countAllRows(file.columns[0]);
+    fileChanges.push(
+      new FileVersion(file.name, FILE_STATUS.DELETE, {
+        add: 0,
+        delete: countRows,
+      })
+    );
+  });
+
   await Promise.all([
     DatasetDao.createNewVersionDataset(
       datasetId,
@@ -349,6 +364,8 @@ async function createNewVersion(req, res, next) {
       false
     ),
   ]);
+
+  deleteLocalFiles(deleteFiles.map((file) => file.path));
 
   res.status(200).json({ message: 'ok' });
 }
@@ -390,7 +407,7 @@ const createDatasetObject = (dataset) => {
 // Get different array between 2 arrays
 const getDifferent = (array1 = [], array2 = []) => {
   return array1.filter(
-    ({ name: id1 }) => !array2.some(({ name: id2 }) => id2 === id1)
+    ({ name: name1 }) => !array2.some(({ name: name2 }) => name2 === name1)
   );
 };
 
@@ -434,8 +451,14 @@ async function addFile(files, fileModifies, path) {
     files.map(async (file) => {
       const fileType = getFileType(file.mimetype);
       const columns = await analysis(file.path, fileType);
-      let changeDetails = '',
-        status = FILE_STATUS.ADD;
+      const countRows = countAllRows(columns[0]);
+
+      let changeDetails = {
+        add: countRows,
+        delete: 0,
+      };
+      let status = FILE_STATUS.ADD;
+
       if (fileModifies && fileModifies.has(file.originalname)) {
         changeDetails = compare2Files(
           file.path,
@@ -443,9 +466,11 @@ async function addFile(files, fileModifies, path) {
         );
         status = FILE_STATUS.MODIFIED;
       }
+
       fileChanges.push(
         new FileVersion(file.originalname, status, changeDetails)
       );
+
       return new File({
         name: file.originalname,
         size: file.size,
@@ -480,11 +505,17 @@ async function addFile(files, fileModifies, path) {
   };
 }
 
+function countAllRows(column) {
+  return (
+    column.analysis.missing + column.analysis.valid + column.analysis.wrongType
+  );
+}
+
 function compare2Files(path1, path2) {
   //TODO: compare
   //delete old file
   try {
-    fs.unlinkSync(path2);
+    deleteLocalFiles([path2]);
     return {
       add: ['1', '2'],
       remove: ['3', '4'],
@@ -492,6 +523,15 @@ function compare2Files(path1, path2) {
   } catch (error) {
     throw error;
   }
+}
+
+function deleteLocalFiles(path) {
+  path.forEach((item) => {
+    fs.unlink(item, (err) => {
+      if (err) throw err;
+      console.log('deleted file');
+    });
+  });
 }
 
 module.exports = {
