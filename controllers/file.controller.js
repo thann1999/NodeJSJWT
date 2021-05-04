@@ -1,7 +1,7 @@
 const FileDao = require('../dao/file.dao');
 const DatasetDao = require('../dao/dataset.dao');
 const { columnsAnalysis } = require('./common/analysis-column');
-const { readFileByPath } = require('./common/read-file');
+const { readFileByPath } = require('./common/crud-file-local');
 
 async function getFileContentByPath(req, res, next) {
   try {

@@ -111,11 +111,19 @@ class BaseDao {
     });
   }
 
-  findOneAndPopulate(model, query, populate, nestedQuery, select) {
+  findOneAndPopulate(
+    model,
+    query,
+    select,
+    populate,
+    nestedQuery,
+    nestedSelect
+  ) {
     return new Promise((resolve, reject) => {
       model
         .findOne(query)
-        .populate({ path: populate, select: select, match: nestedQuery })
+        .populate({ path: populate, select: nestedSelect, match: nestedQuery })
+        .select(select)
         .exec((err, result) => {
           if (err) {
             reject(err);

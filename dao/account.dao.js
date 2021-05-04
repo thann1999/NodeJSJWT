@@ -27,6 +27,21 @@ class AccountDao extends BaseDao {
     return await super.findOne(Account, query);
   }
 
+  /*Find account with username or email */
+  async findAccountByUsernameOrEmailAndPopulate(email, username) {
+    const query = { $or: [{ email: email }, { username: username }] };
+    const select =
+      '_id email avatar name username bio company location dateOfBirth website github datasets';
+    return await super.findOneAndPopulate(
+      Account,
+      query,
+      select,
+      this.datasetPopulate,
+      {},
+      {}
+    );
+  }
+
   /*Create account */
   async createAccount(account = new Account()) {
     return await super.insertOne(account);
@@ -55,23 +70,33 @@ class AccountDao extends BaseDao {
   /* Update profile */
   async updateProfile(accountId, newProfile) {
     const query = { _id: accountId };
-    const {bio, name, company, location, website, github, dateOfBirth} = newProfile
+    const {
+      bio,
+      name,
+      company,
+      location,
+      website,
+      github,
+      dateOfBirth,
+    } = newProfile;
     const update = {
       bio: bio,
       name: name,
       company: company,
-      location: location, 
+      location: location,
       website: website,
-      github: github, 
-      dateOfBirth: dateOfBirth
+      github: github,
+      dateOfBirth: dateOfBirth,
     };
     return await super.updateOne(Account, query, update);
   }
 
   /* Update datasetId into field dataset */
-  async updateDatasetsOfAccount(accountId, datasetId) {
+  async updateDatasetsOfAccount(accountId, datasetId, isAdd) {
     const query = { _id: accountId };
-    const update = { $push: { datasets: datasetId } };
+    const update = isAdd
+      ? { $push: { datasets: datasetId } }
+      : { $pull: { datasets: datasetId } };
     return await super.updateOne(Account, query, update);
   }
 
@@ -87,7 +112,14 @@ class AccountDao extends BaseDao {
     const query = {
       username: username,
     };
-    return await super.findOneAndPopulate(Account, query, this.datasetPopulate, {}, {});
+    return await super.findOneAndPopulate(
+      Account,
+      query,
+      {},
+      this.datasetPopulate,
+      {},
+      {}
+    );
   };
 }
 

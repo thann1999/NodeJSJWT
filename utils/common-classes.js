@@ -13,7 +13,7 @@ class ColumnAnalysis {
     wrongType,
     missing,
     unique,
-    countTimeValueAppear,
+    timeValueAppearChunk,
     mostFrequently,
     percentageMostFrequently,
     max,
@@ -28,7 +28,7 @@ class ColumnAnalysis {
     this.wrongType = wrongType;
     this.missing = missing;
     this.unique = unique;
-    this.countTimeValueAppear = countTimeValueAppear;
+    this.timeValueAppearChunk = timeValueAppearChunk;
     this.mostFrequently = mostFrequently;
     this.percentageMostFrequently = percentageMostFrequently;
     this.max = max;

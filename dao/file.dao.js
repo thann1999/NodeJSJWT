@@ -43,7 +43,7 @@ class FileDao extends BaseDao {
     return await super.updateOne(File, query, update);
   };
 
-  deleteManyFiles = async (fileId) => {
+  deleteManyFilesById = async (fileId) => {
     const query = {
       _id: { $in: fileId },
     };

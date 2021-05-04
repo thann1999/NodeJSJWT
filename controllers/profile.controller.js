@@ -3,28 +3,14 @@ const AccountDao = require('../dao/account.dao');
 
 async function getProfile(req, res, next) {
   try {
-    const user = await AccountDao.findAccountByUsernameOrEmail(
+    const user = await AccountDao.findAccountByUsernameOrEmailAndPopulate(
       null,
       req.params.username
     );
     if (!user) {
       return res.status(400).json({ message: 'Account không tồn tại' });
     }
-    const info = {
-      _id: user._id,
-      email: user.email,
-      avatar: user.avatar,
-      name: user.name,
-      username: user.username,
-      bio: user.bio,
-      company: user.company,
-      location: user.location,
-      dateOfBirth: user.dateOfBirth,
-      website: user.website,
-      github: user.github,
-      datasets: user.datasets,
-    };
-    res.status(200).json({ data: info });
+    res.status(200).json({ data: user });
   } catch (error) {
     next(error);
   }

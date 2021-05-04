@@ -2,6 +2,7 @@ const Dataset = require('../models/dataset.model');
 const File = require('../models/file.model');
 const DatasetDao = require('../dao/dataset.dao');
 const AccountDao = require('../dao/account.dao');
+const CommentDao = require('../dao/comment.dao');
 const FileDao = require('../dao/file.dao');
 const fs = require('fs');
 const { validationResult } = require('express-validator');
@@ -13,10 +14,14 @@ const path = require('path');
 const { columnsAnalysis } = require('./common/analysis-column');
 const classes = require('../utils/common-classes');
 const _ = require('lodash');
-const { readFileByPath } = require('./common/read-file');
+const { diff } = require('json-diff');
+const {
+  readFileByPath,
+  deleteFiles,
+  deleteFolder,
+} = require('./common/crud-file-local');
 const { FileVersion, FILE_STATUS } = require('../utils/file-version');
 const { COLUMN_TYPE, FILE_TYPES } = require('../utils/file-column-type');
-
 const createDataset = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -24,7 +29,7 @@ const createDataset = async (req, res, next) => {
   }
 
   const { title, url, description, visibility, username, accountId } = req.body;
-  const path = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}/files`;
+  const path = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}`;
 
   //add file and get result, summary
   const { datasetSummary, fileChanges, filesResult, size } = await addFile(
@@ -54,8 +59,9 @@ const createDataset = async (req, res, next) => {
 
   //Insert dataset into Dataset collection
   const result = await DatasetDao.insertDataset(dataset);
+
   //Update datasetId into Account collection
-  await AccountDao.updateDatasetsOfAccount(accountId, result._id);
+  await AccountDao.updateDatasetsOfAccount(accountId, result._id, true);
 
   res.status(200).json({ message: 'Upload Dataset thành công' });
 };
@@ -112,24 +118,13 @@ const updateDatasetTitleAndSubtitle = async (req, res, next) => {
   }
 };
 
-/* Update dataset banner */
-const updateDatasetBanner = async (req, res, next) => {
-  const { datasetId } = req.body;
-  const idImage = await uploadImageGoogleDrive(req.file);
-  const googleDriveLink = `https://drive.google.com/uc?export=view&id=${idImage}`;
-
-  res
-    .status(200)
-    .json({ message: 'Cập nhật thành công', data: googleDriveLink });
-};
-
 /* Update dataset banner/thumbnail */
 const updateDatasetImage = async (req, res, next) => {
   try {
     const { datasetId, imageType } = req.body;
     const idImage = await uploadImageGoogleDrive(req.file);
     const googleDriveLink = `https://drive.google.com/uc?export=view&id=${idImage}`;
-    imageType === IMAGE_TYPE.BANNER
+    parseInt(imageType) === IMAGE_TYPE.BANNER
       ? await DatasetDao.updateBanner(datasetId, googleDriveLink)
       : await DatasetDao.updateThumbnail(datasetId, googleDriveLink);
     res
@@ -156,7 +151,7 @@ const updateDatasetTags = async (req, res, next) => {
         const tagsSaved = await TagsDao.findTagInArrayName(differentTags);
         let tagsSaveYet = getDifferent(differentTags, tagsSaved);
         tagsSaveYet = tagsSaveYet.map(
-          (tags) => new classes.Tags(tags.name, datasetId)
+          (tags) => new classes.Tags(tags.name, datasetId, req.user.id)
         );
 
         if (tagsSaved.length > 0) {
@@ -186,24 +181,30 @@ const findAllTags = async (req, res, next) => {
 
 /* Find dataset most like */
 const findTrendingDataset = async (req, res, next) => {
-  const like = 'desc';
-  const datasetResult = await DatasetDao.findDatasetSortByLike(
-    null,
-    null,
-    null,
-    null,
-    null,
-    like,
-    null,
-    4,
-    0
-  );
-  const tagsResult = await TagsDao.find5LargestTags();
-  const tagsDatasets = tagsResult.map((tags) => createTagsObject(tags));
-  const datasets = datasetResult.map((dataset) => createDatasetObject(dataset));
-  res
-    .status(200)
-    .json({ data: { datasets: datasets, tagsDatasets: tagsDatasets } });
+  try {
+    const like = 'desc';
+    const datasetResult = await DatasetDao.findDatasetSortByLike(
+      null,
+      null,
+      null,
+      null,
+      null,
+      like,
+      null,
+      4,
+      0
+    );
+    const tagsResult = await TagsDao.find5LargestTags();
+    const tagsDatasets = tagsResult.map((tags) => createTagsObject(tags));
+    const datasets = datasetResult.map((dataset) =>
+      createDatasetObject(dataset)
+    );
+    res
+      .status(200)
+      .json({ data: { datasets: datasets, tagsDatasets: tagsDatasets } });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /* Filter dataset */
@@ -306,68 +307,95 @@ async function downloadDataset(req, res, next) {
   res.send(data);
 }
 
-async function createNewVersion(req, res, next) {
-  const fileModifies = req.fileModifies;
-  const { datasetId, version, username, url } = req.body;
-  const previousFiles = JSON.parse(req.body.previousFiles);
-  const datasetPath = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}/files/`;
-  //remove duplicate file
-  const currentDataset = await DatasetDao.findAllFilesOfDataset(datasetId);
+/* Delete Dataset */
+async function deleteDataset(req, res, next) {
+  const { datasetId } = req.body;
+  const datasetInfo = await DatasetDao.findDatasetById(datasetId);
+  const { path, files, tags } = datasetInfo;
 
-  const deleteFiles = currentDataset.files.filter(
-    ({ _id: id1 }) => !previousFiles.some((file) => id1.toString() === file._id)
-  );
+  //delete file in local
+  deleteFolder(path);
 
-  const modifies = previousFiles.filter(({ name: name1 }) =>
-    req.files.some(({ originalname: name2 }) => name1 === name2)
-  );
-
-  const deleteAndModifies = _.union(modifies, deleteFiles);
-
-  //add file and get result, summary
-  const result = await Promise.all([
-    addFile(req.files, fileModifies, datasetPath),
-    DatasetDao.updateFileIdInDataset(
-      datasetId,
-      deleteFiles.map((file) => file._id),
-      true
-    ),
-    FileDao.deleteManyFiles(deleteAndModifies.map((file) => file._id)),
-  ]);
-
-  const { datasetSummary, fileChanges, filesResult, size } = result[0];
-
-  let subSize = 0;
-  deleteAndModifies.forEach((file) => {
-    subSize += file.size;
-  });
-
-  deleteFiles.forEach((file) => {
-    const countRows = countAllRows(file.columns[0]);
-    fileChanges.push(
-      new FileVersion(file.name, FILE_STATUS.DELETE, {
-        add: 0,
-        delete: countRows,
-      })
-    );
-  });
-
+  //delete file in db
   await Promise.all([
-    DatasetDao.createNewVersionDataset(
-      datasetId,
-      { version: version, fileChanges: fileChanges },
-      currentDataset.size - subSize + size
-    ),
-    DatasetDao.updateFileIdInDataset(
-      datasetId,
-      filesResult.map((file) => file._id),
-      false
-    ),
+    DatasetDao.deleteDatasetById(datasetId),
+    FileDao.deleteManyFilesById(files),
+    CommentDao.deleteAllCommentInDataset(datasetId),
+    AccountDao.updateDatasetsOfAccount(req.user.id, datasetId, false),
+    TagsDao.removeDatasetIdTags(datasetId, tags),
   ]);
+  res.status(200).json({ message: 'Xóa dataset thành công' });
+}
 
-  deleteLocalFiles(deleteFiles.map((file) => file.path));
+/* Create new version */
+async function createNewVersion(req, res, next) {
+  try {
+    const fileModifies = req.fileModifies;
+    const { datasetId, version, username, url } = req.body;
+    const previousFiles = JSON.parse(req.body.previousFiles);
+    const datasetPath = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}/files/`;
+    //remove duplicate file
+    const currentDataset = await DatasetDao.findAllFilesOfDataset(datasetId);
 
-  res.status(200).json({ message: 'ok' });
+    const deleteFiles = currentDataset.files.filter(
+      ({ _id: id1 }) =>
+        !previousFiles.some((file) => id1.toString() === file._id)
+    );
+
+    const modifies = previousFiles.filter(({ name: name1 }) =>
+      req.files.some(({ originalname: name2 }) => name1 === name2)
+    );
+
+    const deleteAndModifies = _.union(modifies, deleteFiles);
+
+    //add file and get result, summary
+    const result = await Promise.all([
+      addFile(req.files, fileModifies, datasetPath),
+      DatasetDao.updateFileIdInDataset(
+        datasetId,
+        deleteFiles.map((file) => file._id),
+        true
+      ),
+      FileDao.deleteManyFilesById(deleteAndModifies.map((file) => file._id)),
+    ]);
+
+    const { datasetSummary, fileChanges, filesResult, size } = result[0];
+
+    let subSize = 0;
+    deleteAndModifies.forEach((file) => {
+      subSize += file.size;
+    });
+
+    deleteFiles.forEach((file) => {
+      const countRows = countAllRows(file.columns[0]);
+      fileChanges.push(
+        new FileVersion(file.name, FILE_STATUS.DELETE, {
+          add: 0,
+          remove: countRows,
+        })
+      );
+    });
+
+    await Promise.all([
+      DatasetDao.createNewVersionDataset(
+        datasetId,
+        { version: version, fileChanges: fileChanges },
+        currentDataset.size - subSize + size
+      ),
+      DatasetDao.updateFileIdInDataset(
+        datasetId,
+        filesResult.map((file) => file._id),
+        false
+      ),
+    ]);
+
+    //delete local file
+    deleteFiles(deleteFiles.map((file) => file.path));
+
+    res.status(200).json({ message: 'Tạo phiên bản mới thành công' });
+  } catch (error) {
+    next(error);
+  }
 }
 
 /* Common handle function */
@@ -392,7 +420,7 @@ async function analysis(path) {
 }
 
 //Create dataset object from result database
-const createDatasetObject = (dataset) => {
+function createDatasetObject(dataset) {
   const { _id, avatar, name, username, email } = dataset.owner;
   return {
     accountId: _id,
@@ -402,7 +430,7 @@ const createDatasetObject = (dataset) => {
     username: username,
     dataset: dataset,
   };
-};
+}
 
 // Get different array between 2 arrays
 const getDifferent = (array1 = [], array2 = []) => {
@@ -455,12 +483,12 @@ async function addFile(files, fileModifies, path) {
 
       let changeDetails = {
         add: countRows,
-        delete: 0,
+        remove: 0,
       };
       let status = FILE_STATUS.ADD;
 
       if (fileModifies && fileModifies.has(file.originalname)) {
-        changeDetails = compare2Files(
+        changeDetails = await compare2Files(
           file.path,
           `${path}${fileModifies.get(file.originalname)}`
         );
@@ -511,27 +539,30 @@ function countAllRows(column) {
   );
 }
 
-function compare2Files(path1, path2) {
-  //TODO: compare
-  //delete old file
+async function compare2Files(path1, path2) {
   try {
-    deleteLocalFiles([path2]);
-    return {
-      add: ['1', '2'],
-      remove: ['3', '4'],
+    const file = await Promise.all([
+      readFileByPath(path2),
+      readFileByPath(path1),
+    ]);
+    const different = {
+      add: 0,
+      remove: 0,
     };
+    file[0].forEach((item, index) => {
+      const diffResult = diff(item, file[1][index]);
+      if (diffResult !== undefined) {
+        different.add++;
+        different.remove++;
+      }
+    });
+
+    //delete old file
+    deleteFiles([path2]);
+    return different;
   } catch (error) {
     throw error;
   }
-}
-
-function deleteLocalFiles(path) {
-  path.forEach((item) => {
-    fs.unlink(item, (err) => {
-      if (err) throw err;
-      console.log('deleted file');
-    });
-  });
 }
 
 module.exports = {
@@ -548,4 +579,5 @@ module.exports = {
   likeOrUnLikeDataset: likeOrUnLikeDataset,
   downloadDataset: downloadDataset,
   createNewVersion: createNewVersion,
+  deleteDataset: deleteDataset,
 };

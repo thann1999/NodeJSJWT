@@ -20,6 +20,7 @@ class DatasetDao extends BaseDao {
     return await super.findOneAndPopulate(
       Dataset,
       query,
+      {},
       this.filesPopulate,
       {},
       {}
@@ -35,6 +36,7 @@ class DatasetDao extends BaseDao {
     return await super.findOneAndPopulate(
       Dataset,
       query,
+      {},
       this.accountPopulate,
       {},
       select
@@ -199,6 +201,11 @@ class DatasetDao extends BaseDao {
       lastUpdate: new Date(),
     };
     return await super.updateOne(Dataset, query, update);
+  };
+
+  deleteDatasetById = async (datasetId) => {
+    const query = { _id: datasetId };
+    return await super.deleteOne(Dataset, query);
   };
 }
 

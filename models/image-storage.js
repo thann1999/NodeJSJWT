@@ -1,6 +1,6 @@
 const multer = require('multer');
 const AccountDao = require('../dao/account.dao');
-const {IMAGE_TYPE} = require('../utils/image-dataset')
+const { IMAGE_TYPE } = require('../utils/image-dataset');
 const fs = require('fs');
 
 const storage = multer.diskStorage({
@@ -16,7 +16,10 @@ const storage = multer.diskStorage({
     try {
       const { imageType } = req.body;
       const account = await AccountDao.findAccountById(req.user.id);
-      if (imageType === IMAGE_TYPE.BANNER || imageType === IMAGE_TYPE.THUMBNAIL) {
+      if (
+        parseInt(imageType) === IMAGE_TYPE.BANNER ||
+        parseInt(imageType) === IMAGE_TYPE.THUMBNAIL
+      ) {
         const { datasetId } = req.body;
         if (!account.datasets.includes(datasetId)) {
           return cb(new Error('Không có quyền cập nhật dataset'));

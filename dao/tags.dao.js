@@ -99,11 +99,11 @@ class TagsDao extends BaseDao {
     };
 
     const select = '_id name username avatar email';
-    let nestedSort = {}
-    if(like) {
-      nestedSort = like === 'desc' ? {countLike: -1} : {countLike: 1}
+    let nestedSort = {};
+    if (like) {
+      nestedSort = like === 'desc' ? { countLike: -1 } : { countLike: 1 };
     }
-    const nestedQuery = super.createQuery(title, fileType, minSize, maxSize)
+    const nestedQuery = super.createQuery(title, fileType, minSize, maxSize);
     return await super.findOneSortLimitPopulateAndNestedQuery(
       Tags,
       query,
@@ -129,12 +129,13 @@ class TagsDao extends BaseDao {
     const query = {
       name: tags[0],
     };
-    
-    const nestedQuery = super.createQuery(title, fileType, minSize, maxSize)
+
+    const nestedQuery = super.createQuery(title, fileType, minSize, maxSize);
     const select = '_id';
     return await super.findOneAndPopulate(
       Tags,
       query,
+      {},
       this.datasetsPopulate,
       nestedQuery,
       select

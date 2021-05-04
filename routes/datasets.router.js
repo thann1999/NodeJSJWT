@@ -67,7 +67,6 @@ router.post(
   datasetController.updateDatasetTitleAndSubtitle
 );
 
-
 /* Update banner/thumbnail dataset */
 router.post(
   '/update/image',
@@ -104,6 +103,9 @@ router.get('/:username/:url', auth, datasetController.getOneDataset);
 
 /* Download dataset */
 router.post('/download', auth, datasetController.downloadDataset);
+
+/* Delete dataset */
+router.post('/delete', auth, ownerDataset, datasetController.deleteDataset);
 
 /*Update version dataset */
 router.post(
