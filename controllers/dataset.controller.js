@@ -7,12 +7,12 @@ const FileDao = require('../dao/file.dao');
 const fs = require('fs');
 const { validationResult } = require('express-validator');
 const TagsDao = require('../dao/tags.dao');
-const { getRandomImage, IMAGE_TYPE } = require('../utils/image-dataset');
+const { getRandomImage, IMAGE_TYPE } = require('../common/image-dataset.const');
 const { uploadImageGoogleDrive } = require('../utils/upload-google-drive');
 const AdmZip = require('adm-zip');
 const path = require('path');
 const { columnsAnalysis } = require('./common/analysis-column');
-const classes = require('../utils/common-classes');
+const classes = require('../common/common-classes');
 const _ = require('lodash');
 const { diff } = require('json-diff');
 const {
@@ -20,8 +20,13 @@ const {
   deleteFiles,
   deleteFolder,
 } = require('./common/crud-file-local');
-const { FileVersion, FILE_STATUS } = require('../utils/file-version');
+const { FileVersion, FILE_STATUS } = require('../common/file-version');
 const { COLUMN_TYPE, FILE_TYPES } = require('../utils/file-column-type');
+const {
+  RESPONSE_STATUS,
+  RESPONSE_MESSAGE,
+} = require('../utils/res-message-status.const');
+
 const createDataset = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -53,7 +58,7 @@ const createDataset = async (req, res, next) => {
     size: size,
     path: path,
     url: url,
-    visibility: visibility,
+    visibility: parseInt(visibility),
     files: filesResult.map((file) => file._id),
   });
 
@@ -67,13 +72,19 @@ const createDataset = async (req, res, next) => {
 };
 
 const getOneDataset = async (req, res, next) => {
-  const { username, url } = req.params;
-  const result = await DatasetDao.findDatasetAndAccountInfo(url);
-  if (!result || result.owner.username !== username) {
-    return res.status(400).json({ message: 'URL không đúng' });
+  try {
+    const { username, url } = req.params;
+    const result = await DatasetDao.findDatasetAndAccountInfo(url);
+    if (!result || result.owner.username !== username) {
+      return res
+        .status(RESPONSE_STATUS.ERROR)
+        .json({ message: RESPONSE_MESSAGE.NOT_FOUND });
+    }
+    await DatasetDao.increaseViewDownloadDataset(result._id, true);
+    res.status(200).json({ data: createDatasetObject(result) });
+  } catch (error) {
+    next(error);
   }
-
-  res.status(200).json({ data: createDatasetObject(result) });
 };
 
 /* Update description */
@@ -91,7 +102,8 @@ const updateDatasetDescription = async (req, res, next) => {
 const updateDatasetVisibility = async (req, res, next) => {
   try {
     const { datasetId, visibility } = req.body;
-    await DatasetDao.updateVisibility(datasetId, visibility);
+    console.log(visibility);
+    await DatasetDao.updateVisibility(datasetId, parseInt(visibility));
     res.status(200).json({ message: 'Cập nhật thành công' });
   } catch (error) {
     next(error);
@@ -210,7 +222,7 @@ const findTrendingDataset = async (req, res, next) => {
 /* Filter dataset */
 const searchDataset = async (req, res, next) => {
   try {
-    const { title, like, tags, fileTypes, minSize, maxSize, date } = req.body;
+    const { title, like, tags, fileType, minSize, maxSize, date } = req.body;
     const page = parseInt(req.body.page);
     const limit = parseInt(req.body.limit);
     const startIndex = (page - 1) * limit;
@@ -219,7 +231,7 @@ const searchDataset = async (req, res, next) => {
       const datasetsResult = await DatasetDao.findDatasetSortByLike(
         title,
         tags,
-        fileTypes,
+        fileType,
         minSize,
         maxSize,
         like,
@@ -230,7 +242,7 @@ const searchDataset = async (req, res, next) => {
       const countDatasets = await DatasetDao.countDatasets(
         title,
         tags,
-        fileTypes,
+        fileType,
         minSize,
         maxSize,
         date
@@ -249,7 +261,7 @@ const searchDataset = async (req, res, next) => {
       const tagsResult = await TagsDao.findDatasetInTags(
         tags,
         title,
-        fileTypes,
+        fileType,
         minSize,
         maxSize,
         like,
@@ -260,7 +272,7 @@ const searchDataset = async (req, res, next) => {
       const countDatasets = await TagsDao.countDatasetInTags(
         tags,
         title,
-        fileTypes,
+        fileType,
         minSize,
         maxSize,
         date
@@ -293,37 +305,33 @@ const likeOrUnLikeDataset = async (req, res, next) => {
 
 //Download dataset
 async function downloadDataset(req, res, next) {
-  const { pathDataset } = req.body;
-  const zip = new AdmZip();
-  const files = fs.readdirSync(pathDataset);
-  files.forEach((file) => {
-    zip.addLocalFile(path.join(pathDataset, file));
-  });
-  const file_after_download = 'dataset.zip';
-  const data = zip.toBuffer();
-  res.set('Content-Type', 'application/octet-stream');
-  res.set('Content-Disposition', `attachment; filename=${file_after_download}`);
-  res.set('Content-Length', data.length);
-  res.send(data);
+  try {
+    const { pathDataset, datasetId } = req.body;
+    await DatasetDao.increaseViewDownloadDataset(datasetId, false);
+    const zip = new AdmZip();
+    const files = fs.readdirSync(`${pathDataset}/files`);
+    files.forEach((file) => {
+      zip.addLocalFile(path.join(`${pathDataset}/files`, file));
+    });
+    const data = zip.toBuffer();
+    const file_after_download = `${pathDataset.split('/').pop()}`;
+    res.set('Content-Type', 'application/octet-stream');
+    res.set(
+      'Content-Disposition',
+      `attachment; filename=${file_after_download}`
+    );
+    res.set('Content-Length', data.length);
+    res.send(data);
+  } catch (error) {
+    next(error);
+  }
 }
 
 /* Delete Dataset */
 async function deleteDataset(req, res, next) {
   const { datasetId } = req.body;
-  const datasetInfo = await DatasetDao.findDatasetById(datasetId);
-  const { path, files, tags } = datasetInfo;
+  await deleteManyDataset([datasetId], req.user.id);
 
-  //delete file in local
-  deleteFolder(path);
-
-  //delete file in db
-  await Promise.all([
-    DatasetDao.deleteDatasetById(datasetId),
-    FileDao.deleteManyFilesById(files),
-    CommentDao.deleteAllCommentInDataset(datasetId),
-    AccountDao.updateDatasetsOfAccount(req.user.id, datasetId, false),
-    TagsDao.removeDatasetIdTags(datasetId, tags),
-  ]);
   res.status(200).json({ message: 'Xóa dataset thành công' });
 }
 
@@ -565,6 +573,27 @@ async function compare2Files(path1, path2) {
   }
 }
 
+async function deleteManyDataset(datasetIds, accountId) {
+  const datasetInfos = await DatasetDao.findDatasetById(datasetIds);
+  datasetInfos.map(async (info) => {
+    const { path, files, tags } = info;
+
+    //delete file in local
+    deleteFolder(path);
+
+    //delete file in db
+    await Promise.all([
+      DatasetDao.deleteDatasetById(info._id),
+      FileDao.deleteManyFilesById(files),
+      CommentDao.deleteAllCommentInDataset(info._id),
+      accountId &&
+        AccountDao.updateDatasetsOfAccount(accountId, info._id, false),
+      TagsDao.removeDatasetIdTags(info._id, tags),
+    ]);
+    return true;
+  });
+}
+
 module.exports = {
   createDataset: createDataset,
   getOneDataset: getOneDataset,
@@ -580,4 +609,5 @@ module.exports = {
   downloadDataset: downloadDataset,
   createNewVersion: createNewVersion,
   deleteDataset: deleteDataset,
+  deleteManyDataset: deleteManyDataset,
 };

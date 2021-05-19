@@ -1,6 +1,6 @@
 const multer = require('multer');
 const AccountDao = require('../dao/account.dao');
-const { IMAGE_TYPE } = require('../utils/image-dataset');
+const { IMAGE_TYPE } = require('../common/image-dataset.const');
 const fs = require('fs');
 
 const storage = multer.diskStorage({

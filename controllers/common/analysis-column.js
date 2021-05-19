@@ -3,7 +3,7 @@ const {
   validateTypeValue,
 } = require('../../utils/file-column-type');
 const _ = require('lodash');
-const classes = require('../../utils/common-classes');
+const classes = require('../../common/common-classes');
 
 /* Analysis column */
 async function columnsAnalysis(arrayColumnsInfo, arrayContents) {

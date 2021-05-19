@@ -1,10 +1,10 @@
 const express = require('express');
 const multer = require('multer');
-const { auth } = require('../common/verify-token');
-const { ownerDataset } = require('../common/verify-owner');
+const { auth } = require('../utils/verify-token');
+const { ownerDataset } = require('../utils/verify-owner');
 const datasetController = require('../controllers/dataset.controller');
 const util = require('util');
-const { validate } = require('../common/validation-dataset');
+const { validate } = require('../utils/validation-dataset');
 const {
   uploadDataset,
   updateVersion,
@@ -98,9 +98,6 @@ router.post('/search', auth, datasetController.searchDataset);
 /* Like dataset  */
 router.post('/like', auth, datasetController.likeOrUnLikeDataset);
 
-/* Get dataset info */
-router.get('/:username/:url', auth, datasetController.getOneDataset);
-
 /* Download dataset */
 router.post('/download', auth, datasetController.downloadDataset);
 
@@ -129,5 +126,8 @@ router.post(
   },
   datasetController.createNewVersion
 );
+
+/* Get dataset info */
+router.get('/:username/:url', auth, datasetController.getOneDataset);
 
 module.exports = router;

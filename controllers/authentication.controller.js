@@ -66,8 +66,8 @@ async function verifyAccount(req, res, next) {
   }
 
   const result = await RegisterCodeDao.findRegisterCodeByUserId(accountId);
-  const findCode = result.find(item => item.code === verifyCode)
-  if (findCode ===  undefined) {
+  const findCode = result.find((item) => item.code === verifyCode);
+  if (findCode === undefined) {
     return res.status(400).json({ message: 'Mã xác nhận sai' });
   } else if (findCode.isAlreadyUse) {
     return res.status(400).json({ message: 'Mã xác nhận đã được sử dụng' });
@@ -87,12 +87,12 @@ async function verifyAccount(req, res, next) {
 /* Check login or not */
 async function checkLogin(req, res, next) {
   try {
-    const result = await AccountDao.findAccountById(req.user.id);
+    const user = await AccountDao.findAccountById(req.user.id);
     const data = {
-      accountId: req.user.id,
-      avatar: result.avatar,
-      username: result.username,
-      name: result.name,
+      accountId: user._id,
+      avatar: user.avatar,
+      username: user.username,
+      name: user.name,
     };
     res.status(200).json({ data: data });
   } catch (error) {
@@ -181,11 +181,11 @@ async function loginGoogle(req, res, next) {
     } else {
       data = {
         accountId: user._id,
-        avatar: user.imageUrl,
+        avatar: user.avatar,
         username: user.username,
         name: user.name,
       };
-      token = await createJWTToken(user._id, user.name, profile.imageUrl);
+      token = await createJWTToken(user._id, user.name, user.avatar);
     }
     res
       .status(200)
@@ -238,7 +238,7 @@ async function loginFacebook(req, res, next) {
         avatar: user.avatar,
         username: user.username,
         accountId: user._id,
-        name: user.name
+        name: user.name,
       };
       token = await createJWTToken(user._id, user.name, profile.avatar);
     }
@@ -283,7 +283,7 @@ async function register(req, res, next) {
     //If account exist
     if (user) {
       if (!user.isVerify) {
-        await AccountDao.deleteAccount(user.email);
+        await AccountDao.deleteAccountByIdOrEmail(null, user.email);
       } else {
         if (user.email === newUser.email)
           return res.status(400).json({ message: 'Email đã tồn tại' });

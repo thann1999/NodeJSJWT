@@ -10,11 +10,13 @@ const datasetSchema = new mongoose.Schema({
   like: [{ type: mongoose.Types.ObjectId, required: true }],
   countLike: { type: Number },
   url: { type: String, required: true },
-  visibility: { type: String, enum: ['public', 'private'], required: true },
+  visibility: { type: Number, enum: [0, 1], required: true },
   path: { type: String, required: true },
   banner: { type: String },
   size: { type: Number, required: true },
   summary: { type: Object },
+  views: { type: Number },
+  downloads: { type: Number },
   files: [{ type: mongoose.Types.ObjectId, ref: 'File' }],
   versions: [
     {

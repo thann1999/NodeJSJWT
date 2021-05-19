@@ -21,6 +21,35 @@ class AccountDao extends BaseDao {
     return await super.findOne(Account, query);
   }
 
+  /*Find account by Id */
+  async findAndPopulateDatasetFilter(id, visibility, fileType, sort) {
+    const query = {
+      _id: id,
+    };
+
+    const select = 'datasets';
+    const nestedQuery = super.createQuery(
+      null,
+      fileType,
+      null,
+      null,
+      visibility
+    );
+    let nestedSort = {};
+    if (sort) {
+      nestedSort = sort = 1 ? { lastUpdate: -1 } : { countLike: -1 };
+    }
+    return await super.findOneAndPopulate(
+      Account,
+      query,
+      select,
+      this.datasetPopulate,
+      nestedQuery,
+      {},
+      nestedSort
+    );
+  }
+
   /*Find account with username or email */
   async findAccountByUsernameOrEmail(email, username) {
     const query = { $or: [{ email: email }, { username: username }] };
@@ -31,14 +60,16 @@ class AccountDao extends BaseDao {
   async findAccountByUsernameOrEmailAndPopulate(email, username) {
     const query = { $or: [{ email: email }, { username: username }] };
     const select =
-      '_id email avatar name username bio company location dateOfBirth website github datasets';
+      '_id email avatar name username bio company location dateOfBirth website accountMode github datasets';
+    const nestedSort = { lastUpdate: -1 };
     return await super.findOneAndPopulate(
       Account,
       query,
       select,
       this.datasetPopulate,
       {},
-      {}
+      {},
+      nestedSort
     );
   }
 
@@ -55,8 +86,8 @@ class AccountDao extends BaseDao {
   }
 
   /* Delete account */
-  async deleteAccount(email) {
-    const query = { email: email };
+  async deleteAccountByIdOrEmail(accountId, email) {
+    const query = { $or: [{ email: email }, { _id: accountId }] };
     return await super.deleteOne(Account, query);
   }
 
@@ -70,15 +101,8 @@ class AccountDao extends BaseDao {
   /* Update profile */
   async updateProfile(accountId, newProfile) {
     const query = { _id: accountId };
-    const {
-      bio,
-      name,
-      company,
-      location,
-      website,
-      github,
-      dateOfBirth,
-    } = newProfile;
+    const { bio, name, company, location, website, github, dateOfBirth } =
+      newProfile;
     const update = {
       bio: bio,
       name: name,
@@ -87,6 +111,7 @@ class AccountDao extends BaseDao {
       website: website,
       github: github,
       dateOfBirth: dateOfBirth,
+      lastUpdate: Date.now(),
     };
     return await super.updateOne(Account, query, update);
   }
@@ -100,10 +125,17 @@ class AccountDao extends BaseDao {
     return await super.updateOne(Account, query, update);
   }
 
-  /* Update profile */
+  /* Update avatar */
   async updateAvatar(accountId, avatar) {
     const query = { _id: accountId };
-    const update = { avatar: avatar };
+    const update = { avatar: avatar, lastUpdate: Date.now() };
+    return await super.updateOne(Account, query, update);
+  }
+
+  /* Update account mode */
+  async updateAccountMode(accountId, mode) {
+    const query = { _id: accountId };
+    const update = { accountMode: mode };
     return await super.updateOne(Account, query, update);
   }
 

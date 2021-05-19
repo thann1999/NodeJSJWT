@@ -51,6 +51,14 @@ class DatasetDao extends BaseDao {
     return await super.findOne(Dataset, query);
   };
 
+  /* Find many dataset by id */
+  findDatasetById = async (datasetIds) => {
+    const query = {
+      _id: { $in: datasetIds },
+    };
+    return await super.find(Dataset, query);
+  };
+
   /*update description dataset */
   updateDescription = async (datasetId, description) => {
     const query = {
@@ -81,6 +89,7 @@ class DatasetDao extends BaseDao {
     const update = {
       title: title,
       subtitle: subtitle,
+      lastUpdate: Date.now(),
     };
     return await super.updateOne(Dataset, query, update);
   };
@@ -92,6 +101,7 @@ class DatasetDao extends BaseDao {
     };
     const update = {
       banner: banner,
+      lastUpdate: Date.now(),
     };
     return await super.updateOne(Dataset, query, update);
   };
@@ -103,6 +113,7 @@ class DatasetDao extends BaseDao {
     };
     const update = {
       thumbnail: thumbnail,
+      lastUpdate: Date.now(),
     };
     return await super.updateOne(Dataset, query, update);
   };
@@ -114,6 +125,7 @@ class DatasetDao extends BaseDao {
     };
     const update = {
       tags: tags,
+      lastUpdate: Date.now(),
     };
     return await super.updateOne(Dataset, query, update);
   };
@@ -198,7 +210,7 @@ class DatasetDao extends BaseDao {
           $sort: { createdDate: -1 },
         },
       },
-      lastUpdate: new Date(),
+      lastUpdate: Date.now(),
     };
     return await super.updateOne(Dataset, query, update);
   };
@@ -206,6 +218,20 @@ class DatasetDao extends BaseDao {
   deleteDatasetById = async (datasetId) => {
     const query = { _id: datasetId };
     return await super.deleteOne(Dataset, query);
+  };
+
+  increaseViewDownloadDataset = async (datasetId, isView) => {
+    const query = { _id: datasetId };
+
+    const update = isView
+      ? {
+          $inc: { views: 1 },
+        }
+      : {
+          $inc: { downloads: 1 },
+        };
+
+    return await super.updateOne(Dataset, query, update);
   };
 }
 

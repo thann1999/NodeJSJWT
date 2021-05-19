@@ -29,6 +29,7 @@ class FileDao extends BaseDao {
     };
     const update = {
       columns: columns,
+      lastUpdate: Date.now(),
     };
     return await super.updateOne(File, query, update);
   };
@@ -39,6 +40,7 @@ class FileDao extends BaseDao {
     };
     const update = {
       description: description,
+      lastUpdate: Date.now(),
     };
     return await super.updateOne(File, query, update);
   };

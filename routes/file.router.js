@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { auth } = require('../common/verify-token');
-const { ownerFile } = require('../common/verify-owner');
+const { auth } = require('../utils/verify-token');
+const { ownerFile } = require('../utils/verify-owner');
 const fileController = require('../controllers/file.controller');
 
 /* Get all file in dataset */

@@ -50,7 +50,8 @@ const updateDescription = async (req, res, next) => {
 
 const downloadFile = async (req, res, next) => {
   try {
-    const { path } = req.body;
+    const { path, datasetId } = req.body;
+    await DatasetDao.increaseViewDownloadDataset(datasetId, false);
     const name = path.split('/');
     res.download(path, name[name.length - 1]);
   } catch (error) {

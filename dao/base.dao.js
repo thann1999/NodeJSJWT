@@ -117,12 +117,18 @@ class BaseDao {
     select,
     populate,
     nestedQuery,
-    nestedSelect
+    nestedSelect,
+    nestedSort
   ) {
     return new Promise((resolve, reject) => {
       model
         .findOne(query)
-        .populate({ path: populate, select: nestedSelect, match: nestedQuery })
+        .populate({
+          path: populate,
+          select: nestedSelect,
+          match: nestedQuery,
+          sort: nestedSort,
+        })
         .select(select)
         .exec((err, result) => {
           if (err) {
@@ -289,11 +295,12 @@ class BaseDao {
   }
 
   /* Handle common */
-  createQuery(title, fileType, minSize, maxSize) {
+  createQuery(title, fileType, minSize, maxSize, visibility) {
     const query = {};
     if (fileType) query['summary.fileTypes'] = [fileType];
     if (minSize && maxSize) query.size = { $gte: minSize, $lte: maxSize };
     if (title) query.title = { $regex: '.*' + title + '.*' };
+    if (visibility) query.visibility = visibility;
     return query;
   }
 }
