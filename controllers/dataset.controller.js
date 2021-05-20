@@ -53,6 +53,8 @@ const createDataset = async (req, res, next) => {
     tags: [],
     summary: datasetSummary,
     countLike: 0,
+    downloads: 0,
+    views: 0,
     like: [],
     versions: [{ version: 'Phiên bản đầu tiên', fileChanges: fileChanges }],
     size: size,
