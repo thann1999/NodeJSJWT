@@ -49,15 +49,8 @@ class Tags {
   }
 }
 
-class DatasetSummary {
-  constructor(fileTypes) {
-    this.fileTypes = fileTypes;
-  }
-}
-
 module.exports = {
   FileColumn: FileColumn,
   Tags: Tags,
-  DatasetSummary: DatasetSummary,
   ColumnAnalysis: ColumnAnalysis,
 };

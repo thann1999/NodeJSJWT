@@ -37,7 +37,7 @@ const createDataset = async (req, res, next) => {
   const path = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}`;
 
   //add file and get result, summary
-  const { datasetSummary, fileChanges, filesResult, size } = await addFile(
+  const { fileTypes, fileChanges, filesResult, size } = await addFile(
     req.files
   );
 
@@ -51,7 +51,7 @@ const createDataset = async (req, res, next) => {
     subtitle: '',
     description: description ? description.trim() : '',
     tags: [],
-    summary: datasetSummary,
+    fileTypes: fileTypes,
     countLike: 0,
     downloads: 0,
     views: 0,
@@ -369,7 +369,7 @@ async function createNewVersion(req, res, next) {
       FileDao.deleteManyFilesById(deleteAndModifies.map((file) => file._id)),
     ]);
 
-    const { datasetSummary, fileChanges, filesResult, size } = result[0];
+    const { fileTypes, fileChanges, filesResult, size } = result[0];
 
     let subSize = 0;
     deleteAndModifies.forEach((file) => {
@@ -529,14 +529,11 @@ async function addFile(files, fileModifies, path) {
     fileTypes.add(item.fileType);
   });
 
-  //Dataset contains file type csv, json or others
-  const datasetSummary = new classes.DatasetSummary(Array.from(fileTypes));
-
   //Insert multiple file into File collection
   const filesResult = await FileDao.insertMultipleFile(fileContents);
 
   return {
-    datasetSummary: datasetSummary,
+    fileTypes: Array.from(fileTypes),
     filesResult: filesResult,
     fileChanges: fileChanges,
     size: size,

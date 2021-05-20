@@ -297,7 +297,7 @@ class BaseDao {
   /* Handle common */
   createQuery(title, fileType, minSize, maxSize, visibility) {
     const query = {};
-    if (fileType) query['summary.fileTypes'] = [fileType];
+    if (fileType) query.fileTypes = [fileType];
     if (minSize && maxSize) query.size = { $gte: minSize, $lte: maxSize };
     if (title) query.title = { $regex: '.*' + title + '.*' };
     if (visibility) query.visibility = visibility;
