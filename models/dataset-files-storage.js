@@ -26,13 +26,13 @@ const uploadDataset = multer({
   fileFilter: (req, files, cb) => {
     try {
       if (files) {
-        const typeFile = files.originalname.split('.')[1];
-        const acceptFile = ['csv', 'json', 'zip'];
+        const typeFile = files.originalname.split('.')[1].toLocaleLowerCase();
+        const acceptFile = ['csv', 'json'];
         if (!acceptFile.includes(typeFile)) {
           cb(null, false);
           return cb(
             new Error(
-              'Định dạng file không đúng. Sử dụng file có định dạng: csv, json, zip'
+              'Định dạng file không đúng. Sử dụng file có định dạng: csv, json'
             )
           );
         }
