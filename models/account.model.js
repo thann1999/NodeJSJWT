@@ -20,6 +20,7 @@ const accountSchema = new mongoose.Schema({
   lastUpdate: { type: Date, default: Date.now(), required: true },
   role: { type: String, required: true },
   isVerify: { type: Boolean, default: false, required: true },
+  recommend: { type: Array },
   datasets: [{ type: mongoose.Types.ObjectId, ref: 'Dataset' }],
 });
 

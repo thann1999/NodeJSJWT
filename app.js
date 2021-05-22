@@ -7,7 +7,8 @@ const authenticationRouter = require('./routes/authentication.router');
 const profileRouter = require('./routes/profile.router');
 const datasetRouter = require('./routes/datasets.router');
 const fileRouter = require('./routes/file.router');
-const commentRouter = require('./routes/comment.router')
+const commentRouter = require('./routes/comment.router');
+const commonRouter = require('./routes/common.router');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
@@ -21,7 +22,6 @@ app.use(
     optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
   })
 );
-
 
 //connect mongodb
 mongoose.set('useCreateIndex', true);
@@ -44,7 +44,8 @@ app.use('/api/auth', authenticationRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/dataset', datasetRouter);
 app.use('/api/file', fileRouter);
-app.use('/api/comment', commentRouter)
+app.use('/api/comment', commentRouter);
+app.use('/api/common', commonRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

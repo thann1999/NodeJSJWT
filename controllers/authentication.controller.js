@@ -60,28 +60,33 @@ async function forgotPassword(req, res, next) {
 /* verify email to register account */
 async function verifyAccount(req, res, next) {
   // Get auth header value
-  const { verifyCode, accountId } = req.body;
-  if (!verifyCode) {
-    return res.status(401).json({ message: 'Từ chối truy cập' });
-  }
+  try {
+    const { verifyCode, accountId } = req.body;
+    if (!verifyCode) {
+      return res.status(401).json({ message: 'Từ chối truy cập' });
+    }
 
-  const result = await RegisterCodeDao.findRegisterCodeByUserId(accountId);
-  const findCode = result.find((item) => item.code === verifyCode);
-  if (findCode === undefined) {
-    return res.status(400).json({ message: 'Mã xác nhận sai' });
-  } else if (findCode.isAlreadyUse) {
-    return res.status(400).json({ message: 'Mã xác nhận đã được sử dụng' });
-  }
+    const result = await RegisterCodeDao.findRegisterCodeByUserId(accountId);
+    const findCode = result.find((item) => item.code === verifyCode);
+    if (findCode === undefined) {
+      return res.status(400).json({ message: 'Mã xác nhận sai' });
+    } else if (findCode.isAlreadyUse) {
+      return res.status(400).json({ message: 'Mã xác nhận đã được sử dụng' });
+    }
 
-  //check expired code
-  const minute = Math.abs(new Date() - findCode.createdDate) / (1000 * 60);
-  if (minute > process.env.EXPIRE_MINUTE_REGISTER_CODE) {
-    return res.status(400).json({ message: 'Mã xác nhận đã quá hạn' });
+    //check expired code
+    const minute = Math.abs(new Date() - findCode.createdDate) / (1000 * 60);
+    if (minute > process.env.EXPIRE_MINUTE_REGISTER_CODE) {
+      return res.status(400).json({ message: 'Mã xác nhận đã quá hạn' });
+    }
+    const isVerify = true;
+
+    await AccountDao.updateAccount(accountId, 5, isVerify);
+    await RegisterCodeDao.updateAlreadyUse(findCode._id);
+    res.status(200).json({ message: 'Mã xác nhận đúng' });
+  } catch (error) {
+    next(error);
   }
-  const isVerify = true;
-  await AccountDao.updateVerifyAccount(accountId, isVerify);
-  await RegisterCodeDao.updateAlreadyUse(findCode._id);
-  res.status(200).json({ message: 'Mã xác nhận đúng' });
 }
 
 /* Check login or not */
@@ -112,7 +117,7 @@ async function changePassword(req, res, next) {
     return res.status(422).json({ message: errors.array() });
   }
   try {
-    await AccountDao.updatePassword(req.user.id, hashPassword(password));
+    await AccountDao.updateAccount(req.user.id, 4, hashPassword(password));
     res.status(200).json({ message: 'Đổi mật khẩu thành công' });
   } catch (error) {
     next(error);
@@ -168,6 +173,7 @@ async function loginGoogle(req, res, next) {
         password: '',
         isVerify: true,
         role: process.env.ROLE_USER,
+        recommends: [],
         datasets: [],
       });
       const result = await AccountDao.createAccount(newUser);
@@ -223,6 +229,7 @@ async function loginFacebook(req, res, next) {
         github: '',
         isVerify: true,
         role: process.env.ROLE_USER,
+        recommends: [],
         datasets: [],
       });
       const result = await AccountDao.createAccount(newUser);
@@ -273,6 +280,7 @@ async function register(req, res, next) {
       bio: '',
       company: '',
       location: '',
+      recommends: [],
       dateOfBirth: new Date(),
       website: '',
       github: '',

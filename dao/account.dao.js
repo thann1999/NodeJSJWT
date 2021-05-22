@@ -60,7 +60,7 @@ class AccountDao extends BaseDao {
   async findAccountByUsernameOrEmailAndPopulate(email, username) {
     const query = { $or: [{ email: email }, { username: username }] };
     const select =
-      '_id email avatar name username bio company location dateOfBirth website accountMode github datasets';
+      '_id email avatar name username bio company location dateOfBirth website accountMode github recommend datasets ';
     const nestedSort = { lastUpdate: -1 };
     return await super.findOneAndPopulate(
       Account,
@@ -91,13 +91,6 @@ class AccountDao extends BaseDao {
     return await super.deleteOne(Account, query);
   }
 
-  /*Update password account */
-  async updatePassword(accountId, newPassword) {
-    const query = { _id: accountId };
-    const update = { password: newPassword };
-    return await super.updateOne(Account, query, update);
-  }
-
   /* Update profile */
   async updateProfile(accountId, newProfile) {
     const query = { _id: accountId };
@@ -125,20 +118,6 @@ class AccountDao extends BaseDao {
     return await super.updateOne(Account, query, update);
   }
 
-  /* Update avatar */
-  async updateAvatar(accountId, avatar) {
-    const query = { _id: accountId };
-    const update = { avatar: avatar, lastUpdate: Date.now() };
-    return await super.updateOne(Account, query, update);
-  }
-
-  /* Update account mode */
-  async updateAccountMode(accountId, mode) {
-    const query = { _id: accountId };
-    const update = { accountMode: mode };
-    return await super.updateOne(Account, query, update);
-  }
-
   /* Find all dataset of account*/
   findAllDatasetOfAccount = async (username) => {
     const query = {
@@ -152,6 +131,45 @@ class AccountDao extends BaseDao {
       {},
       {}
     );
+  };
+
+  // update account: recommend, avatar, mode, password...
+  updateAccount = async (accountId, updateType, updateData) => {
+    const query = {
+      _id: accountId,
+    };
+    let update = {};
+
+    switch (updateType) {
+      case 1: //update recommend tags
+        update = {
+          recommend: updateData,
+        };
+        break;
+      case 2: //update avatar
+        update = {
+          avatar: updateData,
+          lastUpdate: Date.now(),
+        };
+        break;
+      case 3: //update account mode
+        update = {
+          accountMode: updateData,
+        };
+        break;
+      case 4: //update password
+        update = {
+          password: updateData,
+        };
+        break;
+      case 5: //update verify account
+        update = {
+          isVerify: updateData,
+        };
+        break;
+    }
+
+    return super.updateOne(Account, query, update);
   };
 }
 

@@ -42,9 +42,12 @@ class ColumnAnalysis {
 }
 
 class Tags {
-  constructor(name, datasetId) {
+  constructor(name, datasetId, accountId) {
     this.name = name;
     this.datasets = [datasetId];
+    this.accountId = accountId;
+    this.followers = [];
+    this.followsLength = 0;
     this.datasetsLength = 1;
   }
 }

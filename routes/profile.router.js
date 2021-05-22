@@ -41,6 +41,9 @@ router.post(
 /* delete account */
 router.get('/delete', auth, profileController.deleteAccount);
 
+/* Update recommend tags for account */
+router.post('/update-recommend', auth, profileController.updateRecommend);
+
 /*Get info profile */
 router.get('/:username', auth, profileController.getProfile);
 

@@ -86,9 +86,6 @@ router.post(
   datasetController.updateDatasetImage
 );
 
-/* Get all tags */
-router.get('/all-tags', auth, datasetController.findAllTags);
-
 /* Get trending dataset  */
 router.get('/trending', auth, datasetController.findTrendingDataset);
 

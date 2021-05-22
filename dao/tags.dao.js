@@ -34,7 +34,7 @@ class TagsDao extends BaseDao {
   };
 
   /* Push dataset id to datasets field */
-  pushDatasetIdTags = async (datasetId, arrName = []) => {
+  pushDatasetIdInTags = async (datasetId, arrName = []) => {
     const stringName = arrName.map((objectName) => objectName.name);
     const query = {
       name: { $in: stringName },
@@ -42,6 +42,20 @@ class TagsDao extends BaseDao {
     const update = {
       $push: { datasets: datasetId },
       $inc: { datasetsLength: 1 },
+    };
+    return await super.updateMany(Tags, query, update);
+  };
+
+  /* Push account id to followers field */
+  pushAccountIdInTags = async (accountId, arrName = []) => {
+    const stringName = arrName.map((objectName) => objectName.name);
+    const query = {
+      name: { $in: stringName },
+    };
+
+    const update = {
+      $push: { followers: accountId },
+      $inc: { followersLength: 1 },
     };
     return await super.updateMany(Tags, query, update);
   };

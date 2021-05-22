@@ -161,6 +161,7 @@ const updateDatasetTags = async (req, res, next) => {
       (differentTags.length === 0 && newTags.length < oldTags.length)
     ) {
       await DatasetDao.updateTags(datasetId, newTags);
+
       if (differentTags.length > 0) {
         const tagsSaved = await TagsDao.findTagInArrayName(differentTags);
         let tagsSaveYet = getDifferent(differentTags, tagsSaved);
@@ -169,7 +170,7 @@ const updateDatasetTags = async (req, res, next) => {
         );
 
         if (tagsSaved.length > 0) {
-          await TagsDao.pushDatasetIdTags(datasetId, tagsSaved);
+          await TagsDao.pushDatasetIdInTags(datasetId, tagsSaved);
         }
         await TagsDao.insertMultipleTags(tagsSaveYet);
       } else {
@@ -184,7 +185,7 @@ const updateDatasetTags = async (req, res, next) => {
 };
 
 /* Find all tags */
-const findAllTags = async (req, res, next) => {
+const getAllTags = async (req, res, next) => {
   try {
     const result = await TagsDao.findAllTags();
     res.status(200).json({ data: result });
@@ -601,7 +602,7 @@ module.exports = {
   updateDatasetTitleAndSubtitle: updateDatasetTitleAndSubtitle,
   updateDatasetImage: updateDatasetImage,
   updateDatasetTags: updateDatasetTags,
-  findAllTags: findAllTags,
+  getAllTags: getAllTags,
   findTrendingDataset: findTrendingDataset,
   searchDataset: searchDataset,
   likeOrUnLikeDataset: likeOrUnLikeDataset,

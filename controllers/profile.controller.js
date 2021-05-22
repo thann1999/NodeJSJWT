@@ -50,7 +50,7 @@ async function updateAvatar(req, res, next) {
   try {
     const idImage = await uploadImageGoogleDrive(req.file);
     const googleDriveLink = `https://drive.google.com/uc?export=view&id=${idImage}`;
-    await AccountDao.updateAvatar(req.user.id, googleDriveLink);
+    await AccountDao.updateAccount(req.user.id, 2, googleDriveLink);
     res.status(RESPONSE_STATUS.SUCCESS).json({
       message: RESPONSE_MESSAGE.UPDATE_SUCCESS,
       data: googleDriveLink,
@@ -63,21 +63,69 @@ async function updateAvatar(req, res, next) {
 async function changeAccountMode(req, res, next) {
   try {
     const { mode } = req.params;
-    await AccountDao.updateAccountMode(req.user.id, mode);
+    await AccountDao.updateAccount(req.user.id, 3, mode);
     res
       .status(RESPONSE_STATUS.SUCCESS)
       .json({ message: RESPONSE_MESSAGE.UPDATE_SUCCESS });
-  } catch (error) {}
+  } catch (error) {
+    next(error);
+  }
 }
 
 async function deleteAccount(req, res, next) {
-  const user = await AccountDao.findAccountById(req.user.id);
-  await AccountDao.deleteAccountByIdOrEmail(req.user.id, null);
-  await datasetController.deleteManyDataset(user.datasets);
-  res
-    .status(RESPONSE_STATUS.SUCCESS)
-    .json({ message: RESPONSE_MESSAGE.DELETE_SUCCESS });
+  try {
+    const user = await AccountDao.findAccountById(req.user.id);
+    await AccountDao.deleteAccountByIdOrEmail(req.user.id, null);
+    await datasetController.deleteManyDataset(user.datasets);
+    res
+      .status(RESPONSE_STATUS.SUCCESS)
+      .json({ message: RESPONSE_MESSAGE.DELETE_SUCCESS });
+  } catch (error) {
+    next(error);
+  }
 }
+
+async function updateRecommend(req, res, next) {
+  try {
+    const { oldRecommend, newRecommend } = req.body;
+    await AccountDao.updateAccount(req.user.id, 1, newRecommend);
+
+    const differentTags = getDifferent(newRecommend, oldRecommend);
+
+    if (
+      differentTags.length > 0 ||
+      (differentTags.length === 0 && newRecommend.length < oldRecommend.length)
+    ) {
+      if (differentTags.length > 0) {
+        const tagsSaved = await TagsDao.findTagInArrayName(differentTags);
+        let tagsSaveYet = getDifferent(differentTags, tagsSaved);
+        tagsSaveYet = tagsSaveYet.map(
+          (tags) => new classes.Tags(tags.name, datasetId, req.user.id)
+        );
+
+        if (tagsSaved.length > 0) {
+          await TagsDao.pushDatasetIdInTags(datasetId, tagsSaved);
+        }
+        await TagsDao.insertMultipleTags(tagsSaveYet);
+      } else {
+        await TagsDao.removeDatasetIdTags(datasetId, removeTags);
+      }
+    }
+
+    res
+      .status(RESPONSE_STATUS.SUCCESS)
+      .json({ message: RESPONSE_MESSAGE.UPDATE_SUCCESS });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Get different array between 2 arrays
+const getDifferent = (array1 = [], array2 = []) => {
+  return array1.filter(
+    ({ name: name1 }) => !array2.some(({ name: name2 }) => name2 === name1)
+  );
+};
 
 module.exports = {
   getProfile: getProfile,
@@ -86,4 +134,5 @@ module.exports = {
   filterDatasetInOneAccount: filterDatasetInOneAccount,
   changeAccountMode: changeAccountMode,
   deleteAccount: deleteAccount,
+  updateRecommend: updateRecommend,
 };

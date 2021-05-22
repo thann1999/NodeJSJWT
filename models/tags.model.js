@@ -6,6 +6,8 @@ const TagsSchema = new mongoose.Schema({
   datasetsLength: { type: Number, required: true },
   description: { type: String },
   datasets: [{ type: mongoose.Types.ObjectId, ref: 'Dataset' }],
+  followers: [{ type: mongoose.Types.ObjectId, ref: 'Account' }],
+  followersLength: { type: Number },
   createdDate: { type: String, required: true, default: Date.now() },
 });
 
