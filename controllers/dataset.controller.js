@@ -221,8 +221,7 @@ const getRecommendList = async (req, res, next) => {
   const datasets =
     countDatasets > 0 &&
     datasetsResult.map((dataset) => createDatasetObject(dataset));
-  console.log(datasets);
-  res.status(200).json({ data: 'ok' });
+  res.status(200).json({ data: datasets });
 };
 
 /* Find dataset most like */

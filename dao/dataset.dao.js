@@ -149,8 +149,8 @@ class DatasetDao extends BaseDao {
     if (like) {
       sort = like === 'desc' ? { countLike: -1 } : { countLike: 1 };
     }
-    const select =
-      'thumbnail banner title subtitle countLike downloads views createdDate lastUpdate ';
+    const select = `thumbnail banner title subtitle countLike downloads views 
+      createdDate lastUpdate size fileTypes url `;
     const populateSelect = '_id name username avatar email';
     return await super.findSortLimitSkipAndPopulate(
       Dataset,
