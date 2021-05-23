@@ -193,8 +193,9 @@ class BaseDao {
     sort,
     limit,
     skip,
+    select,
     populate,
-    select
+    populateSelect
   ) {
     return new Promise((resolve, reject) => {
       model
@@ -202,7 +203,8 @@ class BaseDao {
         .sort(sort)
         .limit(limit)
         .skip(skip)
-        .populate({ path: populate, select: select })
+        .select(select)
+        .populate({ path: populate, select: populateSelect })
         .exec((err, result) => {
           if (err) {
             reject(err);

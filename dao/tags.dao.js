@@ -20,9 +20,9 @@ class TagsDao extends BaseDao {
 
   /* Find tags in array name */
   findTagInArrayName = async (arrName = []) => {
-    const stringName = arrName.map((objectName) => objectName.name);
+    const stringTags = arrName.map((objectName) => objectName.name);
     const query = {
-      name: { $in: stringName },
+      name: { $in: stringTags },
     };
     return await super.find(Tags, query);
   };
@@ -35,9 +35,9 @@ class TagsDao extends BaseDao {
 
   /* Push dataset id to datasets field */
   pushDatasetOrAccountInTags = async (data, arrName = [], type) => {
-    const stringName = arrName.map((objectName) => objectName.name);
+    const stringTags = arrName.map((objectName) => objectName.name);
     const query = {
-      name: { $in: stringName },
+      name: { $in: stringTags },
     };
 
     //1: dataset, 2: followers

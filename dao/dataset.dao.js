@@ -143,27 +143,32 @@ class DatasetDao extends BaseDao {
     skip
   ) => {
     const query = super.createQuery(title, fileType, minSize, maxSize);
-    if (tags && tags.length > 1) query['tags.name'] = { $all: tags };
+    const stringTags = tags.map((objectName) => objectName.name);
+    if (tags && tags.length > 1) query['tags.name'] = { $all: stringTags };
     let sort = {};
     if (like) {
       sort = like === 'desc' ? { countLike: -1 } : { countLike: 1 };
     }
-    const select = '_id name username avatar email';
+    const select =
+      'thumbnail banner title subtitle countLike downloads views createdDate lastUpdate ';
+    const populateSelect = '_id name username avatar email';
     return await super.findSortLimitSkipAndPopulate(
       Dataset,
       query,
       sort,
       limit,
       skip,
+      select,
       this.accountPopulate,
-      select
+      populateSelect
     );
   };
 
   /* Count datasets by query*/
   countDatasets = async (title, tags, fileType, minSize, maxSize, date) => {
     const query = super.createQuery(title, fileType, minSize, maxSize);
-    if (tags && tags.length > 1) query['tags.name'] = { $all: tags };
+    const stringTags = tags.map((objectName) => objectName.name);
+    if (tags && tags.length > 1) query['tags.name'] = { $all: stringTags };
     return await super.countDocuments(Dataset, query);
   };
 

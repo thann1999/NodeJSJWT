@@ -191,6 +191,40 @@ const getAllTags = async (req, res, next) => {
   }
 };
 
+/* Filter dataset */
+const getRecommendList = async (req, res, next) => {
+  const user = await AccountDao.findAccountById(req.user.id);
+  const limit = 10;
+  const countDatasets = await DatasetDao.countDatasets(
+    null,
+    user.recommend,
+    null,
+    null,
+    null,
+    null
+  );
+  const random = Math.floor(Math.random() * (countDatasets / 10));
+  const startIndex = random * limit;
+
+  const datasetsResult = await DatasetDao.findDatasetSortByLike(
+    null,
+    user.recommend,
+    null,
+    null,
+    null,
+    null,
+    null,
+    limit,
+    startIndex
+  );
+
+  const datasets =
+    countDatasets > 0 &&
+    datasetsResult.map((dataset) => createDatasetObject(dataset));
+  console.log(datasets);
+  res.status(200).json({ data: 'ok' });
+};
+
 /* Find dataset most like */
 const findTrendingDataset = async (req, res, next) => {
   try {
@@ -607,4 +641,5 @@ module.exports = {
   createNewVersion: createNewVersion,
   deleteDataset: deleteDataset,
   deleteManyDataset: deleteManyDataset,
+  getRecommendList: getRecommendList,
 };
