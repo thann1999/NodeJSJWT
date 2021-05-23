@@ -156,27 +156,24 @@ const updateDatasetTags = async (req, res, next) => {
     const differentTags = getDifferent(newTags, oldTags);
     const removeTags = getDifferent(oldTags, newTags);
 
-    if (
-      differentTags.length > 0 ||
-      (differentTags.length === 0 && newTags.length < oldTags.length)
-    ) {
-      await DatasetDao.updateTags(datasetId, newTags);
+    if (differentTags.length > 0) {
+      const tagsSaved = await TagsDao.findTagInArrayName(differentTags);
+      const tagsSaveYet = getDifferent(differentTags, tagsSaved).map(
+        (tags) => new classes.Tags(tags.name, datasetId, req.user.id)
+      );
 
-      if (differentTags.length > 0) {
-        const tagsSaved = await TagsDao.findTagInArrayName(differentTags);
-        let tagsSaveYet = getDifferent(differentTags, tagsSaved);
-        tagsSaveYet = tagsSaveYet.map(
-          (tags) => new classes.Tags(tags.name, datasetId, req.user.id)
-        );
-
-        if (tagsSaved.length > 0) {
-          await TagsDao.pushDatasetIdInTags(datasetId, tagsSaved);
-        }
-        await TagsDao.insertMultipleTags(tagsSaveYet);
-      } else {
-        await TagsDao.removeDatasetIdTags(datasetId, removeTags);
-      }
+      await Promise.all([
+        tagsSaved.length > 0 &&
+          TagsDao.pushDatasetOrAccountInTags(datasetId, tagsSaved, 1),
+        tagsSaveYet.length > 0 && TagsDao.insertMultipleTags(tagsSaveYet),
+      ]);
     }
+
+    await Promise.all([
+      DatasetDao.updateTags(datasetId, newTags),
+      removeTags.length > 0 &&
+        TagsDao.removeDatasetOrFollowerInTags(datasetId, removeTags, 1),
+    ]);
 
     res.status(200).json({ message: 'Cập nhật thành công' });
   } catch (error) {
@@ -588,7 +585,7 @@ async function deleteManyDataset(datasetIds, accountId) {
       CommentDao.deleteAllCommentInDataset(info._id),
       accountId &&
         AccountDao.updateDatasetsOfAccount(accountId, info._id, false),
-      TagsDao.removeDatasetIdTags(info._id, tags),
+      TagsDao.removeDatasetOrFollowerInTags(info._id, tags, 1),
     ]);
     return true;
   });

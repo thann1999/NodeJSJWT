@@ -5,6 +5,7 @@ const {
 } = require('../utils/res-message-status.const');
 const AccountDao = require('../dao/account.dao');
 const datasetController = require('./dataset.controller');
+const TagsDao = require('../dao/tags.dao');
 
 async function getProfile(req, res, next) {
   try {
@@ -75,8 +76,10 @@ async function changeAccountMode(req, res, next) {
 async function deleteAccount(req, res, next) {
   try {
     const user = await AccountDao.findAccountById(req.user.id);
-    await AccountDao.deleteAccountByIdOrEmail(req.user.id, null);
-    await datasetController.deleteManyDataset(user.datasets);
+    await Promise.all([
+      AccountDao.deleteAccountByIdOrEmail(req.user.id, null),
+      datasetController.deleteManyDataset(user.datasets),
+    ]);
     res
       .status(RESPONSE_STATUS.SUCCESS)
       .json({ message: RESPONSE_MESSAGE.DELETE_SUCCESS });
@@ -88,29 +91,16 @@ async function deleteAccount(req, res, next) {
 async function updateRecommend(req, res, next) {
   try {
     const { oldRecommend, newRecommend } = req.body;
-    await AccountDao.updateAccount(req.user.id, 1, newRecommend);
-
     const differentTags = getDifferent(newRecommend, oldRecommend);
+    const removeTags = getDifferent(oldRecommend, newRecommend);
 
-    if (
-      differentTags.length > 0 ||
-      (differentTags.length === 0 && newRecommend.length < oldRecommend.length)
-    ) {
-      if (differentTags.length > 0) {
-        const tagsSaved = await TagsDao.findTagInArrayName(differentTags);
-        let tagsSaveYet = getDifferent(differentTags, tagsSaved);
-        tagsSaveYet = tagsSaveYet.map(
-          (tags) => new classes.Tags(tags.name, datasetId, req.user.id)
-        );
-
-        if (tagsSaved.length > 0) {
-          await TagsDao.pushDatasetIdInTags(datasetId, tagsSaved);
-        }
-        await TagsDao.insertMultipleTags(tagsSaveYet);
-      } else {
-        await TagsDao.removeDatasetIdTags(datasetId, removeTags);
-      }
-    }
+    await Promise.all([
+      AccountDao.updateAccount(req.user.id, 1, newRecommend),
+      differentTags.length > 0 &&
+        TagsDao.pushDatasetOrAccountInTags(req.user.id, differentTags, 2),
+      removeTags.length > 0 &&
+        TagsDao.removeDatasetOrFollowerInTags(req.user.id, removeTags, 2),
+    ]);
 
     res
       .status(RESPONSE_STATUS.SUCCESS)
