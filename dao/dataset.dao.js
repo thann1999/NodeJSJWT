@@ -143,15 +143,15 @@ class DatasetDao extends BaseDao {
     skip
   ) => {
     const query = super.createQuery(title, fileType, minSize, maxSize);
-    const stringTags = tags.map((objectName) => objectName.name);
-    if (tags && tags.length > 1) query['tags.name'] = { $all: stringTags };
-    let sort = {};
-    if (like) {
-      sort = like === 'desc' ? { countLike: -1 } : { countLike: 1 };
+    if (tags) {
+      const stringTags = tags.map((objectName) => objectName.name);
+      query['tags.name'] = { $all: stringTags };
     }
+    const sort = like && like === 'desc' ? { countLike: -1 } : { countLike: 1 };
     const select = `thumbnail banner title subtitle countLike downloads views 
-      createdDate lastUpdate size fileTypes url `;
-    const populateSelect = '_id name username avatar email';
+      createdDate lastUpdate size fileTypes url`;
+    const populateSelect = `_id name username avatar email`;
+
     return await super.findSortLimitSkipAndPopulate(
       Dataset,
       query,
@@ -167,8 +167,11 @@ class DatasetDao extends BaseDao {
   /* Count datasets by query*/
   countDatasets = async (title, tags, fileType, minSize, maxSize, date) => {
     const query = super.createQuery(title, fileType, minSize, maxSize);
-    const stringTags = tags.map((objectName) => objectName.name);
-    if (tags && tags.length > 1) query['tags.name'] = { $all: stringTags };
+    if (tags) {
+      const stringTags = tags.map((objectName) => objectName.name);
+      query['tags.name'] = { $all: stringTags };
+    }
+
     return await super.countDocuments(Dataset, query);
   };
 
@@ -181,18 +184,16 @@ class DatasetDao extends BaseDao {
   /* Like or unlike dataset */
   likeOrUnLike = async (datasetId, accountId, like) => {
     const query = { _id: datasetId };
-    let update;
-    if (like) {
-      update = {
-        $push: { like: accountId },
-        $inc: { countLike: 1 },
-      };
-    } else {
-      update = {
-        $pull: { like: accountId },
-        $inc: { countLike: -1 },
-      };
-    }
+    const update = like
+      ? {
+          $push: { like: accountId },
+          $inc: { countLike: 1 },
+        }
+      : {
+          $pull: { like: accountId },
+          $inc: { countLike: -1 },
+        };
+
     return await super.updateOne(Dataset, query, update);
   };
 
@@ -217,6 +218,7 @@ class DatasetDao extends BaseDao {
       },
       lastUpdate: Date.now(),
     };
+
     return await super.updateOne(Dataset, query, update);
   };
 
@@ -227,7 +229,6 @@ class DatasetDao extends BaseDao {
 
   increaseViewDownloadDataset = async (datasetId, isView) => {
     const query = { _id: datasetId };
-
     const update = isView
       ? {
           $inc: { views: 1 },

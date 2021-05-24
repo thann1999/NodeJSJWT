@@ -226,30 +226,24 @@ const getRecommendList = async (req, res, next) => {
 
 /* Find dataset most like */
 const findTrendingDataset = async (req, res, next) => {
-  try {
-    const like = 'desc';
-    const datasetResult = await DatasetDao.findDatasetSortByLike(
-      null,
-      null,
-      null,
-      null,
-      null,
-      like,
-      null,
-      4,
-      0
-    );
-    const tagsResult = await TagsDao.find5LargestTags();
-    const tagsDatasets = tagsResult.map((tags) => createTagsObject(tags));
-    const datasets = datasetResult.map((dataset) =>
-      createDatasetObject(dataset)
-    );
-    res
-      .status(200)
-      .json({ data: { datasets: datasets, tagsDatasets: tagsDatasets } });
-  } catch (error) {
-    next(error);
-  }
+  const like = 'desc';
+  const datasetResult = await DatasetDao.findDatasetSortByLike(
+    null,
+    null,
+    null,
+    null,
+    null,
+    like,
+    null,
+    4,
+    0
+  );
+  const tagsResult = await TagsDao.find5LargestTags();
+  const tagsDatasets = tagsResult.map((tags) => createTagsObject(tags));
+  const datasets = datasetResult.map((dataset) => createDatasetObject(dataset));
+  res
+    .status(200)
+    .json({ data: { datasets: datasets, tagsDatasets: tagsDatasets } });
 };
 
 /* Filter dataset */
