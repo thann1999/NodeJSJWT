@@ -193,8 +193,15 @@ const getAllTags = async (req, res, next) => {
 
 /* Filter dataset */
 const getRecommendList = async (req, res, next) => {
-  const user = await AccountDao.findAccountById(req.user.id);
-  const limit = 10;
+  const { countDatasets, datasetsResult } = await getRecommend(req.user.id, 10);
+  const datasets =
+    countDatasets > 0 &&
+    datasetsResult.map((dataset) => createDatasetObject(dataset));
+  res.status(200).json({ data: datasets });
+};
+
+const getRecommend = async (userId, limit) => {
+  const user = await AccountDao.findAccountById(userId);
   const countDatasets = await DatasetDao.countDatasets(
     null,
     user.recommend,
@@ -218,10 +225,10 @@ const getRecommendList = async (req, res, next) => {
     startIndex
   );
 
-  const datasets =
-    countDatasets > 0 &&
-    datasetsResult.map((dataset) => createDatasetObject(dataset));
-  res.status(200).json({ data: datasets });
+  return {
+    countDatasets,
+    datasetsResult,
+  };
 };
 
 /* Find dataset most like */
@@ -241,9 +248,19 @@ const findTrendingDataset = async (req, res, next) => {
   const tagsResult = await TagsDao.find5LargestTags();
   const tagsDatasets = tagsResult.map((tags) => createTagsObject(tags));
   const datasets = datasetResult.map((dataset) => createDatasetObject(dataset));
-  res
-    .status(200)
-    .json({ data: { datasets: datasets, tagsDatasets: tagsDatasets } });
+  const { countDatasets, datasetsResult } = await getRecommend(req.user.id, 10);
+  const recommend =
+    countDatasets > 0 &&
+    datasetsResult.map((dataset) => createDatasetObject(dataset));
+
+  res.status(200).json({
+    data: {
+      topDatasets: datasets,
+      newDatasets: datasets,
+      recommend: recommend,
+      tagsDatasets: tagsDatasets,
+    },
+  });
 };
 
 /* Filter dataset */
@@ -266,6 +283,7 @@ const searchDataset = async (req, res, next) => {
         limit,
         startIndex
       );
+
       const countDatasets = await DatasetDao.countDatasets(
         title,
         tags,
@@ -274,11 +292,9 @@ const searchDataset = async (req, res, next) => {
         maxSize,
         date
       );
-      let datasets = [];
-      if (countDatasets > 0)
-        datasets = datasetsResult.map((dataset) =>
-          createDatasetObject(dataset)
-        );
+      let datasets =
+        countDatasets > 0 &&
+        datasetsResult.map((dataset) => createDatasetObject(dataset));
 
       result = {
         countDatasets: countDatasets,
@@ -296,6 +312,7 @@ const searchDataset = async (req, res, next) => {
         limit,
         startIndex
       );
+
       const countDatasets = await TagsDao.countDatasetInTags(
         tags,
         title,

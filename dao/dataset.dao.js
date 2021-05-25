@@ -145,7 +145,7 @@ class DatasetDao extends BaseDao {
     const query = super.createQuery(title, fileType, minSize, maxSize);
     if (tags) {
       const stringTags = tags.map((objectName) => objectName.name);
-      query['tags.name'] = { $all: stringTags };
+      query['tags.name'] = { $in: stringTags };
     }
     const sort = like && like === 'desc' ? { countLike: -1 } : { countLike: 1 };
     const select = `thumbnail banner title subtitle countLike downloads views 
@@ -169,7 +169,7 @@ class DatasetDao extends BaseDao {
     const query = super.createQuery(title, fileType, minSize, maxSize);
     if (tags) {
       const stringTags = tags.map((objectName) => objectName.name);
-      query['tags.name'] = { $all: stringTags };
+      query['tags.name'] = { $in: stringTags };
     }
 
     return await super.countDocuments(Dataset, query);

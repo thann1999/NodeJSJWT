@@ -86,9 +86,6 @@ router.post(
   datasetController.updateDatasetImage
 );
 
-/* Get trending dataset  */
-router.get('/trending', auth, datasetController.findTrendingDataset);
-
 /* Search dataset by filter  */
 router.post('/search', auth, datasetController.searchDataset);
 

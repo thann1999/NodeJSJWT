@@ -9,4 +9,7 @@ router.get('/all-tags', auth, datasetController.getAllTags);
 /* Get recommend dataset */
 router.get('/recommend-list', auth, datasetController.getRecommendList);
 
+/* Get recommend dataset */
+router.get('/trending', auth, datasetController.findTrendingDataset);
+
 module.exports = router;
