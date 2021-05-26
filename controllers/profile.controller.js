@@ -2,7 +2,7 @@ const { uploadImageGoogleDrive } = require('../utils/upload-google-drive');
 const {
   RESPONSE_MESSAGE,
   RESPONSE_STATUS,
-} = require('../utils/res-message-status.const');
+} = require('../utils/response-message-status.const');
 const AccountDao = require('../dao/account.dao');
 const datasetController = require('./dataset.controller');
 const TagsDao = require('../dao/tags.dao');

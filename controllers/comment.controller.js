@@ -1,5 +1,9 @@
 const CommentDao = require('../dao/comment.dao');
 const Comment = require('../models/comment.model');
+const {
+  RESPONSE_MESSAGE,
+  RESPONSE_STATUS,
+} = require('../utils/response-message-status.const');
 
 async function postComment(req, res, next) {
   try {
@@ -16,6 +20,7 @@ async function postComment(req, res, next) {
     if (parent) newComment.parent = parent;
     let result = await CommentDao.createComment(newComment);
     result = await CommentDao.findOneCommentAndPopulateById(result._id);
+    console.log(result);
     res.status(200).json({ data: result[0] });
   } catch (error) {
     next(error);
@@ -72,7 +77,7 @@ async function deleteComment(req, res, next) {
   try {
     const { commentId } = req.body;
     await CommentDao.deleteComment(commentId);
-    res.status(200).json({ message: 'Cập nhật thành công' });
+    res.status(200).json({ message: RESPONSE_MESSAGE.DELETE_SUCCESS });
   } catch (error) {
     next(error);
   }
@@ -84,5 +89,5 @@ module.exports = {
   countAllCommentInDataset: countAllCommentInDataset,
   likeOrUnLikeComment: likeOrUnLikeComment,
   updateComment: updateComment,
-  deleteComment: deleteComment
+  deleteComment: deleteComment,
 };

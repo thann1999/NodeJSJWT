@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const {
   RESPONSE_MESSAGE,
   RESPONSE_STATUS,
-} = require('../utils/res-message-status.const');
+} = require('./response-message-status.const');
 
 //Verify auth token
 function auth(req, res, next) {

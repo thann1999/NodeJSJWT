@@ -25,7 +25,7 @@ const { COLUMN_TYPE, FILE_TYPES } = require('../utils/file-column-type');
 const {
   RESPONSE_STATUS,
   RESPONSE_MESSAGE,
-} = require('../utils/res-message-status.const');
+} = require('../utils/response-message-status.const');
 
 const createDataset = async (req, res, next) => {
   const errors = validationResult(req);

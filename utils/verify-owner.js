@@ -1,7 +1,10 @@
 const AccountDao = require('../dao/account.dao');
 const DatasetDao = require('../dao/dataset.dao');
 const CommentDao = require('../dao/comment.dao');
-
+const {
+  RESPONSE_STATUS,
+  RESPONSE_MESSAGE,
+} = require('./response-message-status.const');
 /*Check owner dataset */
 async function ownerDataset(req, res, next) {
   try {
@@ -43,14 +46,16 @@ async function ownerComment(req, res, next) {
   try {
     const { commentId } = req.body;
     const comment = await CommentDao.findCommentById(commentId);
-    if (comment.commentator !== req.user.id) {
+    if (comment.commentator === req.user.id) {
       return res
-        .status(400)
-        .json({ message: 'Không có quyền cập nhật comment' });
+        .status(RESPONSE_STATUS.FORBIDDEN)
+        .json({ message: RESPONSE_MESSAGE.NOT_PERMISSION });
     }
     next();
   } catch (error) {
-    return res.status(400).json({ message: 'Request không đúng' });
+    return res
+      .status(RESPONSE_STATUS.NOT_FOUND)
+      .json({ message: RESPONSE_MESSAGE.NOT_FOUND });
   }
 }
 
