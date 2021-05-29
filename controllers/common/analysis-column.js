@@ -69,10 +69,6 @@ async function columnsAnalysis(arrayColumnsInfo, arrayContents) {
     }
     const countMostFrequently = item.countTimeValueAppear[item.mostFrequently];
 
-    if (item.mostFrequently === '3%') {
-      console.log(countMostFrequently, item.valid);
-    }
-
     arrayColumnsInfo[index].analysis = new classes.ColumnAnalysis(
       item.valid,
       item.wrongType,
@@ -194,11 +190,13 @@ function convertTo9Chunk(object, columnType) {
         let count = 0;
         const childLength = childArray.length;
         childArray.forEach((item) => (count += object[item]));
-        const label = `${replaceValue(childArray[0])}${
+        const label =
           childLength > 1
-            ? ` - ${replaceValue(childArray[childLength - 1])}`
-            : null
-        }`;
+            ? `${replaceValue(childArray[0])}`
+            : `${replaceValue(childArray[0])} - ${replaceValue(
+                childArray[childLength - 1]
+              )}`;
+
         labels.push(label);
         values.push(count);
       });
