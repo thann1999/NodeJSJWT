@@ -28,49 +28,58 @@ const {
 } = require('../utils/response-message-status.const');
 
 const createDataset = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json(errors.array());
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json(errors.array());
+    }
+
+    const { title, url, description, visibility, username, accountId } =
+      req.body;
+    const path = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}`;
+
+    //add file and get result, summary
+    const { fileTypes, fileChanges, filesResult, size } = await addFile(
+      req.files
+    );
+
+    //Create dataset with array fileId
+    const defaultImage = getRandomImage();
+    const dataset = new Dataset({
+      thumbnail: `https://drive.google.com/uc?export=view&id=${defaultImage.thumbnail}`,
+      banner: `https://drive.google.com/uc?export=view&id=${defaultImage.banner}`,
+      title: title.trim(),
+      owner: req.user.id,
+      subtitle: '',
+      description: description ? description.trim() : '',
+      tags: [],
+      fileTypes: fileTypes,
+      countLike: 0,
+      downloads: 0,
+      views: 0,
+      like: [],
+      versions: [{ version: 'Phiên bản đầu tiên', fileChanges: fileChanges }],
+      size: size,
+      path: path,
+      url: url,
+      visibility: parseInt(visibility),
+      files: filesResult.map((file) => file._id),
+    });
+
+    //Insert dataset into Dataset collection
+    const result = await DatasetDao.insertDataset(dataset);
+
+    //Update datasetId into Account collection
+    await AccountDao.updateDatasetsOfAccount(accountId, result._id, true);
+
+    res
+      .status(RESPONSE_STATUS.SUCCESS)
+      .json({ message: RESPONSE_MESSAGE.CREATE_SUCCESS });
+  } catch (error) {
+    res
+      .status(RESPONSE_STATUS.ERROR)
+      .json({ message: RESPONSE_MESSAGE.NOT_ANALYSIS });
   }
-
-  const { title, url, description, visibility, username, accountId } = req.body;
-  const path = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}`;
-
-  //add file and get result, summary
-  const { fileTypes, fileChanges, filesResult, size } = await addFile(
-    req.files
-  );
-
-  //Create dataset with array fileId
-  const defaultImage = getRandomImage();
-  const dataset = new Dataset({
-    thumbnail: `https://drive.google.com/uc?export=view&id=${defaultImage.thumbnail}`,
-    banner: `https://drive.google.com/uc?export=view&id=${defaultImage.banner}`,
-    title: title.trim(),
-    owner: req.user.id,
-    subtitle: '',
-    description: description ? description.trim() : '',
-    tags: [],
-    fileTypes: fileTypes,
-    countLike: 0,
-    downloads: 0,
-    views: 0,
-    like: [],
-    versions: [{ version: 'Phiên bản đầu tiên', fileChanges: fileChanges }],
-    size: size,
-    path: path,
-    url: url,
-    visibility: parseInt(visibility),
-    files: filesResult.map((file) => file._id),
-  });
-
-  //Insert dataset into Dataset collection
-  const result = await DatasetDao.insertDataset(dataset);
-
-  //Update datasetId into Account collection
-  await AccountDao.updateDatasetsOfAccount(accountId, result._id, true);
-
-  res.status(200).json({ message: 'Upload Dataset thành công' });
 };
 
 const getOneDataset = async (req, res, next) => {
@@ -389,7 +398,7 @@ async function createNewVersion(req, res, next) {
     //remove duplicate file
     const currentDataset = await DatasetDao.findAllFilesOfDataset(datasetId);
 
-    const deleteFiles = currentDataset.files.filter(
+    const filesDelete = currentDataset.files.filter(
       ({ _id: id1 }) =>
         !previousFiles.some((file) => id1.toString() === file._id)
     );
@@ -398,14 +407,14 @@ async function createNewVersion(req, res, next) {
       req.files.some(({ originalname: name2 }) => name1 === name2)
     );
 
-    const deleteAndModifies = _.union(modifies, deleteFiles);
+    const deleteAndModifies = _.union(modifies, filesDelete);
 
     //add file and get result, summary
     const result = await Promise.all([
       addFile(req.files, fileModifies, datasetPath),
       DatasetDao.updateFileIdInDataset(
         datasetId,
-        deleteFiles.map((file) => file._id),
+        filesDelete.map((file) => file._id),
         true
       ),
       FileDao.deleteManyFilesById(deleteAndModifies.map((file) => file._id)),
@@ -418,7 +427,7 @@ async function createNewVersion(req, res, next) {
       subSize += file.size;
     });
 
-    deleteFiles.forEach((file) => {
+    filesDelete.forEach((file) => {
       const countRows = countAllRows(file.columns[0]);
       fileChanges.push(
         new FileVersion(file.name, FILE_STATUS.DELETE, {
@@ -442,7 +451,7 @@ async function createNewVersion(req, res, next) {
     ]);
 
     //delete local file
-    deleteFiles(deleteFiles.map((file) => file.path));
+    deleteFiles(filesDelete.map((file) => file.path));
 
     res.status(200).json({ message: 'Tạo phiên bản mới thành công' });
   } catch (error) {
@@ -519,67 +528,71 @@ function getFileType(mimeType) {
 }
 
 async function addFile(files, fileModifies, path) {
-  //remove duplicate file
-  files = files.filter(
-    (item, index, self) =>
-      index === self.findIndex((t) => t.originalname === item.originalname)
-  );
+  try {
+    //remove duplicate file
+    files = files.filter(
+      (item, index, self) =>
+        index === self.findIndex((t) => t.originalname === item.originalname)
+    );
 
-  const fileChanges = [];
+    const fileChanges = [];
 
-  const fileContents = await Promise.all(
-    files.map(async (file) => {
-      const fileType = getFileType(file.mimetype);
-      const columns = await analysis(file.path, fileType);
-      const countRows = countAllRows(columns[0]);
+    const fileContents = await Promise.all(
+      files.map(async (file) => {
+        const fileType = getFileType(file.mimetype);
+        const columns = await analysis(file.path, fileType);
+        const countRows = countAllRows(columns[0]);
 
-      let changeDetails = {
-        add: countRows,
-        remove: 0,
-      };
-      let status = FILE_STATUS.ADD;
+        let changeDetails = {
+          add: countRows,
+          remove: 0,
+        };
+        let status = FILE_STATUS.ADD;
 
-      if (fileModifies && fileModifies.has(file.originalname)) {
-        changeDetails = await compare2Files(
-          file.path,
-          `${path}${fileModifies.get(file.originalname)}`
+        if (fileModifies && fileModifies.has(file.originalname)) {
+          changeDetails = await compare2Files(
+            file.path,
+            `${path}${fileModifies.get(file.originalname)}`
+          );
+          status = FILE_STATUS.MODIFIED;
+        }
+
+        fileChanges.push(
+          new FileVersion(file.originalname, status, changeDetails)
         );
-        status = FILE_STATUS.MODIFIED;
-      }
 
-      fileChanges.push(
-        new FileVersion(file.originalname, status, changeDetails)
-      );
+        return new File({
+          name: file.originalname,
+          size: file.size,
+          fileType: fileType,
+          path: file.path,
+          summary: {},
+          columns: columns,
+          description: '',
+        });
+      })
+    );
 
-      return new File({
-        name: file.originalname,
-        size: file.size,
-        fileType: fileType,
-        path: file.path,
-        summary: {},
-        columns: columns,
-        description: '',
-      });
-    })
-  );
+    //count size, analysis summary dataset
+    let size = 0,
+      fileTypes = new Set();
+    fileContents.forEach((item) => {
+      size += item.size;
+      fileTypes.add(item.fileType);
+    });
 
-  //count size, analysis summary dataset
-  let size = 0,
-    fileTypes = new Set();
-  fileContents.forEach((item) => {
-    size += item.size;
-    fileTypes.add(item.fileType);
-  });
+    //Insert multiple file into File collection
+    const filesResult = await FileDao.insertMultipleFile(fileContents);
 
-  //Insert multiple file into File collection
-  const filesResult = await FileDao.insertMultipleFile(fileContents);
-
-  return {
-    fileTypes: Array.from(fileTypes),
-    filesResult: filesResult,
-    fileChanges: fileChanges,
-    size: size,
-  };
+    return {
+      fileTypes: Array.from(fileTypes),
+      filesResult: filesResult,
+      fileChanges: fileChanges,
+      size: size,
+    };
+  } catch (error) {
+    throw error;
+  }
 }
 
 function countAllRows(column) {
