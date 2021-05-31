@@ -202,11 +202,18 @@ const getAllTags = async (req, res, next) => {
 
 /* Filter dataset */
 const getRecommendList = async (req, res, next) => {
-  const { countDatasets, datasetsResult } = await getRecommend(req.user.id, 10);
-  const datasets =
-    countDatasets > 0 &&
-    datasetsResult.map((dataset) => createDatasetObject(dataset));
-  res.status(200).json({ data: datasets });
+  try {
+    const { countDatasets, datasetsResult } = await getRecommend(
+      req.user.id,
+      10
+    );
+    const datasets =
+      countDatasets > 0 &&
+      datasetsResult.map((dataset) => createDatasetObject(dataset));
+    res.status(200).json({ data: datasets });
+  } catch (error) {
+    next(error);
+  }
 };
 
 const getRecommend = async (userId, limit) => {
@@ -302,8 +309,9 @@ const searchDataset = async (req, res, next) => {
         date
       );
       let datasets =
-        countDatasets > 0 &&
-        datasetsResult.map((dataset) => createDatasetObject(dataset));
+        countDatasets > 0
+          ? datasetsResult.map((dataset) => createDatasetObject(dataset))
+          : [];
 
       result = {
         countDatasets: countDatasets,
@@ -331,10 +339,10 @@ const searchDataset = async (req, res, next) => {
         date
       );
 
-      let tagsDataset = [];
-      if (tagsResult.datasets.length !== 0) {
-        tagsDataset = createTagsObject(tagsResult);
-      }
+      const tagsDataset =
+        tagsResult.datasets.length !== 0
+          ? (tagsDataset = createTagsObject(tagsResult))
+          : [];
       result = {
         countDatasets: countDatasets.datasets.length,
         datasets:
@@ -352,6 +360,7 @@ const likeOrUnLikeDataset = async (req, res, next) => {
   const { datasetId } = req.body;
   const accountId = req.user.id;
   const checkLike = await DatasetDao.checkLikeOrNot(datasetId, accountId);
+  console.log(checkLike);
   await DatasetDao.likeOrUnLike(datasetId, accountId, checkLike ? false : true);
   res.status(200).send({ message: 'Cập nhật thành công' });
 };
@@ -382,10 +391,14 @@ async function downloadDataset(req, res, next) {
 
 /* Delete Dataset */
 async function deleteDataset(req, res, next) {
-  const { datasetId } = req.body;
-  await deleteManyDataset([datasetId], req.user.id);
+  try {
+    const { datasetId } = req.body;
+    await deleteManyDataset([datasetId], req.user.id);
 
-  res.status(200).json({ message: 'Xóa dataset thành công' });
+    res.status(200).json({ message: RESPONSE_MESSAGE.DELETE_SUCCESS });
+  } catch (error) {
+    next(error);
+  }
 }
 
 /* Create new version */

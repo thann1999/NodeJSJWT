@@ -177,7 +177,8 @@ class DatasetDao extends BaseDao {
 
   /* Check user like or not */
   checkLikeOrNot = async (datasetId, accountId) => {
-    const query = { _id: datasetId, like: [accountId] };
+    console.log(accountId);
+    const query = { _id: datasetId, like: accountId };
     return await super.findOne(Dataset, query);
   };
 

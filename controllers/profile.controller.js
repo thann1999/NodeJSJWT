@@ -110,6 +110,16 @@ async function updateRecommend(req, res, next) {
   }
 }
 
+async function getMyRecommend(req, res, next) {
+  try {
+    const user = await AccountDao.findAccountById(req.user.id);
+
+    res.status(RESPONSE_STATUS.SUCCESS).json({ data: user.recommend });
+  } catch (error) {
+    next(error);
+  }
+}
+
 // Get different array between 2 arrays
 const getDifferent = (array1 = [], array2 = []) => {
   return array1.filter(
@@ -125,4 +135,5 @@ module.exports = {
   changeAccountMode: changeAccountMode,
   deleteAccount: deleteAccount,
   updateRecommend: updateRecommend,
+  getMyRecommend: getMyRecommend,
 };
