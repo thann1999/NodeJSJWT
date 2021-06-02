@@ -1,38 +1,38 @@
-const nodemailer = require("nodemailer");
-const cryptoRandomString = require("crypto-random-string");
-const RegisterCode = require("../models/register-code.model");
-const RegisterCodeDao = require("../dao/register-code.dao");
-const jwt = require("jsonwebtoken");
+const nodemailer = require('nodemailer');
+const cryptoRandomString = require('crypto-random-string');
+const RegisterCode = require('../models/register-code.model');
+const RegisterCodeDao = require('../dao/register-code.dao');
+const jwt = require('jsonwebtoken');
 
 /* Send code to email */
 function sendEmail(mail) {
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    service: 'gmail',
     auth: {
-      user: process.env.TRANSPORT_EMAIL,
-      pass: process.env.TRANSPORT_PASSWORD,
+      user: process.env.EMAIL_USERNAME,
+      pass: process.env.EMAIL_PASSWORD,
     },
   });
   transporter.sendMail(mail, function (error, info) {
     if (error) {
       throw error;
     } else {
-      console.log("Email sent: " + info.response);
+      console.log('Email sent: ' + info.response);
     }
   });
 }
 
 function createMailCode(email, accountId) {
-  const randomCode = cryptoRandomString({ length: 6, type: "numeric" });
+  const randomCode = cryptoRandomString({ length: 6, type: 'numeric' });
   const code = new RegisterCode({
     code: randomCode,
     accountId: accountId,
   });
   RegisterCodeDao.createCode(code);
   const mail = {
-    from: process.env.TRANSPORT_EMAIL,
+    from: process.env.EMAIL_USERNAME,
     to: email,
-    subject: "[Data World] Xác thực email",
+    subject: '[Data World] Xác thực email',
     html: `
         <h2>Chào mừng bạn đến với Data World. Mã xác thực của bạn là: </h2>
         <p>${randomCode}</p>
@@ -43,14 +43,18 @@ function createMailCode(email, accountId) {
 }
 
 function createMailLink(account) {
-  const resetCode = jwt.sign({ id: account._id }, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: "2h",
-  });
+  const resetCode = jwt.sign(
+    { id: account._id },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: '2h',
+    }
+  );
 
   const mail = {
-    from: process.env.TRANSPORT_EMAIL,
+    from: process.env.EMAIL_USERNAME,
     to: account.email,
-    subject: "[Data World] Đặt lại mật khẩu",
+    subject: '[Data World] Đặt lại mật khẩu',
     html: `
         <h2>Click vào link dưới đây để đặt lại mật khẩu: </h2>
         <a href="${process.env.CLIENT_URL}/auth/reset-password/${resetCode}">Click here</a>

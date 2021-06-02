@@ -11,6 +11,7 @@ const commentRouter = require('./routes/comment.router');
 const commonRouter = require('./routes/common.router');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { connectDatabase } = require('./utils/connect-database');
 
 require('dotenv/config');
 const app = express();
@@ -24,14 +25,7 @@ app.use(
 );
 
 //connect mongodb
-mongoose.set('useCreateIndex', true);
-mongoose.connect(
-  process.env.DB_connection,
-  { useUnifiedTopology: true, useNewUrlParser: true },
-  () => {
-    console.log('Connected to DB');
-  }
-);
+connectDatabase();
 
 app.use(logger('dev'));
 app.use(express.json());
