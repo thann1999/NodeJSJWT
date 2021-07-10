@@ -43,4 +43,7 @@ router.post(
   authenticationController.changePassword
 );
 
+/* Get verify code again */
+router.post('/get-verify-code', authenticationController.getVerifyCode);
+
 module.exports = router;

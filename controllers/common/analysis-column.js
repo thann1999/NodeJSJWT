@@ -29,25 +29,6 @@ async function columnsAnalysis(arrayColumnsInfo, arrayContents) {
     });
   });
 
-  arrayColumnsInfo.forEach((column, index) => {
-    if ([COLUMN_TYPE.NUMBER].includes(column.type)) {
-      const sorted = {};
-      //transform number % to .
-      const transform = (stringNumber) => {
-        if (/^\d+(\.\d+)?%$/.test(stringNumber))
-          return +stringNumber.split('%')[0];
-        return +stringNumber;
-      };
-
-      Object.keys(analysis[index].countTimeValueAppear)
-        .sort((number1, number2) => transform(number1) - transform(number2))
-        .forEach((item) => {
-          sorted[item] = analysis[index].countTimeValueAppear[item];
-        });
-      analysis[index].countTimeValueAppear = sorted;
-    }
-  });
-
   analysis.forEach((item, index) => {
     let mean = 0,
       variance = 0,
@@ -191,7 +172,7 @@ function convertTo9Chunk(object, columnType) {
         const childLength = childArray.length;
         childArray.forEach((item) => (count += object[item]));
         const label =
-          childLength > 1
+          childLength === 1
             ? `${replaceValue(childArray[0])}`
             : `${replaceValue(childArray[0])} - ${replaceValue(
                 childArray[childLength - 1]
@@ -218,9 +199,18 @@ function roundNumber(number) {
   return Math.round(number * 100) / 100;
 }
 
+function sortArray(array) {
+  const transform = (stringNumber) => {
+    if (/^\d+(\.\d+)?%$/.test(stringNumber)) return +stringNumber.split('%')[0];
+    return +stringNumber;
+  };
+  array.sort((number1, number2) => transform(number1) - transform(number2));
+}
+
 //split array to n part
 function splitToChunks(array, parts) {
   const tempArray = [...array];
+  sortArray(tempArray);
   let result = [];
   for (let i = parts; i > 0; i--) {
     result.push(tempArray.splice(0, Math.ceil(tempArray.length / i)));

@@ -20,7 +20,6 @@ async function postComment(req, res, next) {
     if (parent) newComment.parent = parent;
     let result = await CommentDao.createComment(newComment);
     result = await CommentDao.findOneCommentAndPopulateById(result._id);
-    console.log(result);
     res.status(200).json({ data: result[0] });
   } catch (error) {
     next(error);

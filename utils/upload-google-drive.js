@@ -90,7 +90,7 @@ async function uploadImage(file, auth) {
       media: media,
       fields: 'id',
     });
-    fs.unlinkSync(file.path)
+    fs.unlinkSync(file.path);
     return response.data.id;
   } catch (err) {
     throw err;

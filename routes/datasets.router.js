@@ -24,6 +24,7 @@ router.post(
       await upload(req, res);
       next();
     } catch (error) {
+      console.log(error);
       if (error instanceof multer.MulterError || error) {
         // A Multer error occurred when uploading.
         return res.status(400).json({ message: error.message });

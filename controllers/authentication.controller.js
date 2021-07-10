@@ -111,7 +111,6 @@ async function changePassword(req, res, next) {
   if (!password) {
     return res.status(200).json({ message: 'Token chính xác' });
   }
-  console.log(password, req.user);
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).json({ message: errors.array() });
@@ -349,6 +348,17 @@ async function deleteRefreshToken(req, res, next) {
   }
 }
 
+async function getVerifyCode(req, res, next) {
+  try {
+    const { accountId } = req.body;
+    const user = await AccountDao.findAccountById(accountId);
+    sendEmail(createMailCode(user.email, user._id));
+    res.status(200).json({ message: 'Gửi thành công' });
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   login: login,
   register: register,
@@ -361,4 +371,5 @@ module.exports = {
   createJWTToken: createJWTToken,
   getNewAccessToken: getNewAccessToken,
   deleteRefreshToken: deleteRefreshToken,
+  getVerifyCode: getVerifyCode,
 };

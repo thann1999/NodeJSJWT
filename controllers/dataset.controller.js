@@ -28,58 +28,58 @@ const {
 } = require('../utils/response-message-status.const');
 
 const createDataset = async (req, res, next) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json(errors.array());
-    }
-
-    const { title, url, description, visibility, username, accountId } =
-      req.body;
-    const path = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}`;
-
-    //add file and get result, summary
-    const { fileTypes, fileChanges, filesResult, size } = await addFile(
-      req.files
-    );
-
-    //Create dataset with array fileId
-    const defaultImage = getRandomImage();
-    const dataset = new Dataset({
-      thumbnail: `https://drive.google.com/uc?export=view&id=${defaultImage.thumbnail}`,
-      banner: `https://drive.google.com/uc?export=view&id=${defaultImage.banner}`,
-      title: title.trim(),
-      owner: req.user.id,
-      subtitle: '',
-      description: description ? description.trim() : '',
-      tags: [],
-      fileTypes: fileTypes,
-      countLike: 0,
-      downloads: 0,
-      views: 0,
-      like: [],
-      versions: [{ version: 'Phiên bản đầu tiên', fileChanges: fileChanges }],
-      size: size,
-      path: path,
-      url: url,
-      visibility: parseInt(visibility),
-      files: filesResult.map((file) => file._id),
-    });
-
-    //Insert dataset into Dataset collection
-    const result = await DatasetDao.insertDataset(dataset);
-
-    //Update datasetId into Account collection
-    await AccountDao.updateDatasetsOfAccount(accountId, result._id, true);
-
-    res
-      .status(RESPONSE_STATUS.SUCCESS)
-      .json({ message: RESPONSE_MESSAGE.CREATE_SUCCESS });
-  } catch (error) {
-    res
-      .status(RESPONSE_STATUS.ERROR)
-      .json({ message: RESPONSE_MESSAGE.NOT_ANALYSIS });
+  // try {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json(errors.array());
   }
+
+  const { title, url, description, visibility, username, accountId } = req.body;
+  const path = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}`;
+
+  //add file and get result, summary
+  const { fileTypes, fileChanges, filesResult, size } = await addFile(
+    req.files
+  );
+
+  //Create dataset with array fileId
+  const defaultImage = getRandomImage();
+  const dataset = new Dataset({
+    thumbnail: `https://drive.google.com/uc?export=view&id=${defaultImage.thumbnail}`,
+    banner: `https://drive.google.com/uc?export=view&id=${defaultImage.banner}`,
+    title: title.trim(),
+    owner: req.user.id,
+    subtitle: '',
+    description: description ? description.trim() : '',
+    tags: [],
+    fileTypes: fileTypes,
+    countLike: 0,
+    downloads: 0,
+    views: 0,
+    like: [],
+    versions: [{ version: 'Phiên bản đầu tiên', fileChanges: fileChanges }],
+    size: size,
+    path: path,
+    url: url,
+    visibility: parseInt(visibility),
+    files: filesResult.map((file) => file._id),
+  });
+
+  //Insert dataset into Dataset collection
+  const result = await DatasetDao.insertDataset(dataset);
+
+  //Update datasetId into Account collection
+  await AccountDao.updateDatasetsOfAccount(accountId, result._id, true);
+
+  res
+    .status(RESPONSE_STATUS.SUCCESS)
+    .json({ message: RESPONSE_MESSAGE.CREATE_SUCCESS });
+  // } catch (error) {
+  //   console.log(error);
+  //   res
+  //     .status(RESPONSE_STATUS.ERROR)
+  //     .json({ message: RESPONSE_MESSAGE.NOT_ANALYSIS });
+  // }
 };
 
 const getOneDataset = async (req, res, next) => {
@@ -113,7 +113,6 @@ const updateDatasetDescription = async (req, res, next) => {
 const updateDatasetVisibility = async (req, res, next) => {
   try {
     const { datasetId, visibility } = req.body;
-    console.log(visibility);
     await DatasetDao.updateVisibility(datasetId, parseInt(visibility));
     res.status(200).json({ message: 'Cập nhật thành công' });
   } catch (error) {
@@ -281,78 +280,72 @@ const findTrendingDataset = async (req, res, next) => {
 
 /* Filter dataset */
 const searchDataset = async (req, res, next) => {
-  try {
-    const { title, like, tags, fileType, minSize, maxSize, date } = req.body;
-    const page = parseInt(req.body.page);
-    const limit = parseInt(req.body.limit);
-    const startIndex = (page - 1) * limit;
-    let result = { countDatasets: 0, datasets: {} };
-    if (!tags || tags.length !== 1) {
-      const datasetsResult = await DatasetDao.findDatasetSortByLike(
-        title,
-        tags,
-        fileType,
-        minSize,
-        maxSize,
-        like,
-        date,
-        limit,
-        startIndex
-      );
+  const { title, like, tags, fileType, minSize, maxSize, date } = req.body;
+  const page = parseInt(req.body.page);
+  const limit = parseInt(req.body.limit);
+  const startIndex = (page - 1) * limit;
+  let result = { countDatasets: 0, datasets: {} };
+  if (!tags || tags.length !== 1) {
+    const datasetsResult = await DatasetDao.findDatasetSortByLike(
+      title,
+      tags,
+      fileType,
+      minSize,
+      maxSize,
+      like,
+      date,
+      limit,
+      startIndex
+    );
 
-      const countDatasets = await DatasetDao.countDatasets(
-        title,
-        tags,
-        fileType,
-        minSize,
-        maxSize,
-        date
-      );
-      let datasets =
-        countDatasets > 0
-          ? datasetsResult.map((dataset) => createDatasetObject(dataset))
-          : [];
+    const countDatasets = await DatasetDao.countDatasets(
+      title,
+      tags,
+      fileType,
+      minSize,
+      maxSize,
+      date
+    );
+    let datasets =
+      countDatasets > 0
+        ? datasetsResult.map((dataset) => createDatasetObject(dataset))
+        : [];
 
-      result = {
-        countDatasets: countDatasets,
-        datasets: datasets,
-      };
-    } else {
-      const tagsResult = await TagsDao.findDatasetInTags(
-        tags,
-        title,
-        fileType,
-        minSize,
-        maxSize,
-        like,
-        date,
-        limit,
-        startIndex
-      );
+    result = {
+      countDatasets: countDatasets || 0,
+      datasets: datasets,
+    };
+  } else {
+    const tagsResult = await TagsDao.findDatasetInTags(
+      tags,
+      title,
+      fileType,
+      minSize,
+      maxSize,
+      like,
+      date,
+      limit,
+      startIndex
+    );
 
-      const countDatasets = await TagsDao.countDatasetInTags(
-        tags,
-        title,
-        fileType,
-        minSize,
-        maxSize,
-        date
-      );
+    const countDatasets = await TagsDao.countDatasetInTags(
+      tags,
+      title,
+      fileType,
+      minSize,
+      maxSize,
+      date
+    );
 
-      const tagsDataset =
-        tagsResult.datasets.length !== 0
-          ? (tagsDataset = createTagsObject(tagsResult))
-          : [];
-      result = {
-        countDatasets: countDatasets.datasets.length,
-        datasets:
-          tagsResult.datasets.length === 0 ? tagsDataset : tagsDataset.datasets,
-      };
-    }
-    res.status(200).json({ data: result });
-  } catch (error) {
-    next(error);
+    const tagsDataset =
+      tagsResult.datasets.length !== 0 ? createTagsObject(tagsResult) : [];
+    result = {
+      countDatasets: countDatasets.datasets.length || 0,
+      datasets:
+        tagsResult.datasets.length === 0 ? tagsDataset : tagsDataset.datasets,
+    };
   }
+  res.status(200).json({ data: result });
 };
 
 //Like or dislike dataset
@@ -360,7 +353,6 @@ const likeOrUnLikeDataset = async (req, res, next) => {
   const { datasetId } = req.body;
   const accountId = req.user.id;
   const checkLike = await DatasetDao.checkLikeOrNot(datasetId, accountId);
-  console.log(checkLike);
   await DatasetDao.likeOrUnLike(datasetId, accountId, checkLike ? false : true);
   res.status(200).send({ message: 'Cập nhật thành công' });
 };
