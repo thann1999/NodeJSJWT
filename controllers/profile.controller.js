@@ -57,6 +57,7 @@ async function updateAvatar(req, res, next) {
       data: googleDriveLink,
     });
   } catch (error) {
+    console.log(error);
     next(error);
   }
 }

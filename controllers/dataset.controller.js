@@ -74,12 +74,6 @@ const createDataset = async (req, res, next) => {
   res
     .status(RESPONSE_STATUS.SUCCESS)
     .json({ message: RESPONSE_MESSAGE.CREATE_SUCCESS });
-  // } catch (error) {
-  //   console.log(error);
-  //   res
-  //     .status(RESPONSE_STATUS.ERROR)
-  //     .json({ message: RESPONSE_MESSAGE.NOT_ANALYSIS });
-  // }
 };
 
 const getOneDataset = async (req, res, next) => {
@@ -124,7 +118,6 @@ const updateDatasetVisibility = async (req, res, next) => {
 const updateDatasetTitleAndSubtitle = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log(errors.array());
     return res.status(400).json(errors.array());
   }
   try {
@@ -523,6 +516,7 @@ function getFileType(mimeType) {
   let fileType = '';
   switch (mimeType) {
     case 'application/vnd.ms-excel':
+    case 'text/csv':
       fileType = FILE_TYPES.CSV;
       break;
     case 'application/json':

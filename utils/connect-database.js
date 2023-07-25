@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 async function connectDatabase() {
-  const uri = `mongodb+srv://Thann:dataworld2021@cluster0.013pv.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+  const uri = `${process.env.DB_connection}?retryWrites=true&w=majority`;
   mongoose.set('useCreateIndex', true);
 
   try {

@@ -98,5 +98,5 @@ async function uploadImage(file, auth) {
 }
 
 module.exports = {
-  uploadImageGoogleDrive: uploadImageGoogleDrive,
+  uploadImageGoogleDrive,
 };

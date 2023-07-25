@@ -36,7 +36,6 @@ const uploadDataset = multer({
             )
           );
         }
-        console.log(files);
         const { username, url } = req.body;
         const dir = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}`;
         fs.access(dir, (error) => {

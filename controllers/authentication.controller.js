@@ -9,6 +9,11 @@ const RefreshTokenDao = require('../dao/refresh-token.dao');
 const RegisterCodeDao = require('../dao/register-code.dao');
 const { OAuth2Client } = require('google-auth-library');
 const axios = require('axios');
+const {
+  ROLE,
+  EXPIRE_MINUTE_REGISTER_CODE,
+  HEADERS,
+} = require('../common/constant');
 
 /* Hashing password by SHA256 */
 function hashPassword(password) {
@@ -38,7 +43,7 @@ async function login(req, res, next) {
     };
     res
       .status(200)
-      .header(process.env.AUTH_TOKEN, token)
+      .header(HEADERS.AUTH_TOKEN, token)
       .json({ token: token, data: data });
   } else {
     res.status(401).json({ message: 'Sai tên tài khoản hoặc mật khẩu' });
@@ -76,7 +81,7 @@ async function verifyAccount(req, res, next) {
 
     //check expired code
     const minute = Math.abs(new Date() - findCode.createdDate) / (1000 * 60);
-    if (minute > process.env.EXPIRE_MINUTE_REGISTER_CODE) {
+    if (minute > EXPIRE_MINUTE_REGISTER_CODE) {
       return res.status(400).json({ message: 'Mã xác nhận đã quá hạn' });
     }
     const isVerify = true;
@@ -171,7 +176,7 @@ async function loginGoogle(req, res, next) {
         github: '',
         password: '',
         isVerify: true,
-        role: process.env.ROLE_USER,
+        role: ROLE.USER,
         recommends: [],
         datasets: [],
       });
@@ -194,7 +199,7 @@ async function loginGoogle(req, res, next) {
     }
     res
       .status(200)
-      .header(process.env.AUTH_TOKEN, token)
+      .header(HEADERS.AUTH_TOKEN, token)
       .json({ token: token, data: data });
   } catch (error) {
     res.status(400).json({ message: 'Access token không đúng' });
@@ -227,7 +232,7 @@ async function loginFacebook(req, res, next) {
         website: '',
         github: '',
         isVerify: true,
-        role: process.env.ROLE_USER,
+        role: ROLE.USER,
         recommends: [],
         datasets: [],
       });
@@ -250,7 +255,7 @@ async function loginFacebook(req, res, next) {
     }
     res
       .status(200)
-      .header(process.env.AUTH_TOKEN, token)
+      .header(HEADERS.AUTH_TOKEN, token)
       .json({ token: token, data: data });
   } catch (error) {
     res.status(400).json({ message: 'Access token không đúng' });
@@ -272,7 +277,8 @@ async function register(req, res, next) {
 
     const newUser = new Account({
       email: req.body.email,
-      avatar: '',
+      avatar:
+        'https://drive.google.com/uc?export=view&id=1t1Dt8GvzShaEQ5ijocOwTkJBbl5hfRH_',
       username: req.body.username,
       password: hashPassword(req.body.password),
       name: req.body.firstName + ' ' + req.body.lastName,
@@ -283,7 +289,7 @@ async function register(req, res, next) {
       dateOfBirth: new Date(),
       website: '',
       github: '',
-      role: process.env.ROLE_USER,
+      role: ROLE.USER,
       datasets: [],
     });
 

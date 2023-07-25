@@ -3,14 +3,15 @@ const {
   RESPONSE_MESSAGE,
   RESPONSE_STATUS,
 } = require('./response-message-status.const');
+const { HEADERS } = require('../common/constant');
 
 //Verify auth token
 function auth(req, res, next) {
   // Get auth header value
   const token =
-    req.header(process.env.AUTH_TOKEN) === 'null'
+    req.header(HEADERS.AUTH_TOKEN) === 'null'
       ? req.header(process.env.RESET_PASSWORD_TOKEN)
-      : req.header(process.env.AUTH_TOKEN);
+      : req.header(HEADERS.AUTH_TOKEN);
   // Check if token is undefined
   if (!token) {
     return res
@@ -26,4 +27,4 @@ function auth(req, res, next) {
   }
 }
 
-module.exports = { auth: auth };
+module.exports = { auth };
