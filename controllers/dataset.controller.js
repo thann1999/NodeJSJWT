@@ -258,8 +258,9 @@ const findTrendingDataset = async (req, res, next) => {
   const datasets = datasetResult.map((dataset) => createDatasetObject(dataset));
   const { countDatasets, datasetsResult } = await getRecommend(req.user.id, 10);
   const recommend =
-    countDatasets > 0 &&
-    datasetsResult.map((dataset) => createDatasetObject(dataset));
+    countDatasets > 0
+      ? datasetsResult.map((dataset) => createDatasetObject(dataset))
+      : [];
 
   res.status(200).json({
     data: {
