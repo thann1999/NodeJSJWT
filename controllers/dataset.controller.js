@@ -35,7 +35,9 @@ const createDataset = async (req, res, next) => {
   }
 
   const { title, url, description, visibility, username, accountId } = req.body;
-  const path = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}`;
+  const outerDir = path.resolve(__dirname, '..');
+
+  const pathDataset = `${outerDir}/upload-dataset/${username}/${url}`;
 
   //add file and get result, summary
   const { fileTypes, fileChanges, filesResult, size } = await addFile(
@@ -59,7 +61,7 @@ const createDataset = async (req, res, next) => {
     like: [],
     versions: [{ version: 'Phiên bản đầu tiên', fileChanges: fileChanges }],
     size: size,
-    path: path,
+    path: pathDataset,
     url: url,
     visibility: parseInt(visibility),
     files: filesResult.map((file) => file._id),
@@ -393,7 +395,8 @@ async function createNewVersion(req, res, next) {
     const fileModifies = req.fileModifies;
     const { datasetId, version, username, url } = req.body;
     const previousFiles = JSON.parse(req.body.previousFiles);
-    const datasetPath = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}/files/`;
+    const outerDir = path.resolve(__dirname, '..');
+    const datasetPath = `${outerDir}/upload-dataset/${username}/${url}/files/`;
     //remove duplicate file
     const currentDataset = await DatasetDao.findAllFilesOfDataset(datasetId);
 

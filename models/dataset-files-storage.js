@@ -1,5 +1,6 @@
 const multer = require('multer');
 const AccountDao = require('../dao/account.dao');
+const path = require('path');
 const fs = require('fs');
 
 const storage = multer.diskStorage({
@@ -37,7 +38,8 @@ const uploadDataset = multer({
           );
         }
         const { username, url } = req.body;
-        const dir = `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}`;
+        const outerDir = path.resolve(__dirname, '..');
+        const dir = `${outerDir}/upload-dataset/${username}/${url}`;
         fs.access(dir, (error) => {
           if (!error) {
             cb(null, false);
@@ -108,7 +110,8 @@ const updateVersion = multer({
 }).any();
 
 const createDir = (username, url) => {
-  return `${process.env.PATH_UPLOAD_FILE}/${username}/dataset/${url}/files/`;
+  const outerDir = path.resolve(__dirname, '..');
+  return `${outerDir}/upload-dataset/${username}/${url}/files/`;
 };
 module.exports = {
   uploadDataset: uploadDataset,
